@@ -25,15 +25,29 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { exportStoryboardPDF } from '@/utils/pdfExport';
+import { LightingSpecSheet } from '@/components/LightingSpecSheet';
+import { FloorPlanModal } from '@/components/FloorPlanModal';
+import { LightingSpatialSpecification } from '@/types/lss';
+import { FloorPlanData } from '@/types/floor-plan';
 
 export default function SceneDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { scenes, storyboardCache, updateStoryboardCache, updateSceneIntent, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects } = useScreenplay();
+    const { scenes, setScenes, storyboardCache, updateStoryboardCache, updateSceneIntent, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects, saveCurrentProject } = useScreenplay(); // Added setScenes/saveCurrentProject
     const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [isExportingAll, setIsExportingAll] = useState(false);
+
+    // Gaffer & Floor Plan State
+    const [showLightingModal, setShowLightingModal] = useState(false);
+    const [activeLightingData, setActiveLightingData] = useState<LightingSpatialSpecification | null>(null);
+    const [loadingLightingId, setLoadingLightingId] = useState<string | null>(null);
+
+    const [showFloorPlanModal, setShowFloorPlanModal] = useState(false);
+    const [activeFloorPlanData, setActiveFloorPlanData] = useState<FloorPlanData | undefined>(undefined);
+    const [activeFloorPlanImage, setActiveFloorPlanImage] = useState<string | undefined>(undefined);
+
 
     // Helper to get project title
     const currentProject = projects.find(p => p.id === currentProjectId);
@@ -251,8 +265,103 @@ export default function SceneDetailPage() {
         }
     };
 
+    // --- GAFFER / LSS LOGIC ---
+    const handleGenerateLighting = async (shot: any) => {
+        if (!shot.selectedImageUrl) {
+            alert("Please select a storyboard image first (Click the logic checkmark on an image).");
+            return;
+        }
+
+        setLoadingLightingId(shot.id);
+        try {
+            const res = await fetch('/api/lighting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    imageUrl: shot.selectedImageUrl,
+                    sceneContext: `INT/EXT: ${scene.location}. TIME: ${scene.time}. SHOT: ${shot.description}`
+                })
+            });
+
+            const data = await res.json();
+            if (data.analysis) {
+                // Update Local State & Persist
+                // We need to update the specific shot in the scenes list
+                const updatedShots = scene.shots.map(s => {
+                    if (s.id === shot.id) {
+                        return { ...s, lightingAnalysis: data.analysis };
+                    }
+                    return s;
+                });
+                updateSceneShots(scene.id, updatedShots);
+
+                // Open Modal
+                setActiveLightingData(data.analysis);
+                setShowLightingModal(true);
+            }
+        } catch (e) {
+            console.error("Lighting Analysis Failed", e);
+            alert("Failed to analyze lighting.");
+        } finally {
+            setLoadingLightingId(null);
+        }
+    };
+
+    const handleOpenFloorPlan = (shot: any) => {
+        // Floor Plan is typically derived from Lighting Analysis or Separate Logic
+        // For now, let's assume if we have lighting data, we can just show the modal.
+        // Or if we implemented a specific Floor Plan generator, we'd call that.
+        // Based on previous context, floorPlanJson is stored on the shot.
+
+        if (shot.floorPlanJson) {
+            setActiveFloorPlanData(shot.floorPlanJson);
+            setActiveFloorPlanImage(shot.selectedImageUrl);
+            setShowFloorPlanModal(true);
+        } else if (shot.lightingAnalysis) {
+            // Fallback: If we have lighting but no explicit floor plan, 
+            // we could try to visualize the lighting data as a floor plan, 
+            // but `FloorPlanModal` expects `FloorPlanData` type.
+            // For this step, let's just show an alert if no floor plan data.
+            alert("No Floor Plan data generated yet. (Feature in progress)");
+        } else {
+            alert("Please run Lighting Analysis first.");
+        }
+    };
+
+
     return (
         <div className="bg-[#0b0f17] min-h-screen text-[#e8eefc] font-sans">
+
+            {/* MODALS */}
+            <AnimatePresence>
+                {showLightingModal && activeLightingData && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 lg:p-10"
+                        onClick={() => setShowLightingModal(false)}
+                    >
+                        <div className="w-full max-w-6xl h-[85vh] bg-[#111] border border-gray-800 rounded-2xl overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                            <button
+                                onClick={() => setShowLightingModal(false)}
+                                className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-white/20 rounded-full text-white z-50 transition-colors"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                            <LightingSpecSheet data={activeLightingData} />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {showFloorPlanModal && (
+                <FloorPlanModal
+                    isOpen={showFloorPlanModal}
+                    onClose={() => setShowFloorPlanModal(false)}
+                    data={activeFloorPlanData}
+                    imageUrl={activeFloorPlanImage}
+                />
+            )}
+
 
             {/* Lightbox */}
             <AnimatePresence>
@@ -441,6 +550,7 @@ export default function SceneDetailPage() {
                         {scene.shots.map((shot, index) => {
                             const cached = (storyboardCache || {})[shot.id];
                             const isGen = generatingShotId === shot.id;
+                            const isLightingLoading = loadingLightingId === shot.id;
 
                             return (
                                 <div key={shot.id} className="group bg-[#020617] border border-[#1f2937] rounded-xl p-5 hover:border-[#334155] transition-all flex flex-col gap-5">
@@ -452,16 +562,61 @@ export default function SceneDetailPage() {
                                             <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.type}</span>
                                             <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.camera}</span>
                                         </div>
-                                        {cached && (
-                                            <button
-                                                onClick={() => handleGenerateStoryboard(shot, true)}
-                                                disabled={isGen}
-                                                className="p-2 text-[#475569] hover:text-[#ff365c] hover:bg-[#ff365c]/10 rounded-full transition-colors disabled:opacity-50"
-                                                title="Regenerate Visuals"
-                                            >
-                                                <RefreshCw className={`w-4 h-4 ${isGen ? 'animate-spin' : ''}`} />
-                                            </button>
-                                        )}
+                                        <div className="flex items-center gap-2">
+
+                                            {/* Gaffer Button */}
+                                            {shot.selectedImageUrl && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (shot.lightingAnalysis) {
+                                                            setActiveLightingData(shot.lightingAnalysis);
+                                                            setShowLightingModal(true);
+                                                        } else {
+                                                            handleGenerateLighting(shot);
+                                                        }
+                                                    }}
+                                                    disabled={isLightingLoading}
+                                                    className={`
+                                                        px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border
+                                                        ${shot.lightingAnalysis
+                                                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20'
+                                                            : 'bg-[#1f2937] border-[#334155] text-[#94a3b8] hover:text-white hover:bg-[#334155]'
+                                                        }
+                                                    `}
+                                                >
+                                                    {isLightingLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Lightbulb className="w-3 h-3" />}
+                                                    <span>{shot.lightingAnalysis ? "Gaffer Plan" : "Gaffer"}</span>
+                                                </button>
+                                            )}
+
+                                            {/* Floor Plan Button (Placeholder if data not ready) */}
+                                            {shot.lightingAnalysis && (
+                                                <button
+                                                    onClick={() => handleOpenFloorPlan(shot)}
+                                                    className={`
+                                                        px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 transition-all border
+                                                        ${shot.floorPlanJson
+                                                            ? 'bg-blue-600/10 border-blue-600/30 text-blue-500 hover:bg-blue-600/20'
+                                                            : 'bg-[#1f2937] border-[#334155] text-[#94a3b8] hover:text-white hover:bg-[#334155]'
+                                                        }
+                                                    `}
+                                                >
+                                                    <Map className="w-3 h-3" />
+                                                    <span>Floor Plan</span>
+                                                </button>
+                                            )}
+
+                                            {cached && (
+                                                <button
+                                                    onClick={() => handleGenerateStoryboard(shot, true)}
+                                                    disabled={isGen}
+                                                    className="p-2 text-[#475569] hover:text-[#ff365c] hover:bg-[#ff365c]/10 rounded-full transition-colors disabled:opacity-50"
+                                                    title="Regenerate Visuals"
+                                                >
+                                                    <RefreshCw className={`w-4 h-4 ${isGen ? 'animate-spin' : ''}`} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
 
                                     {/* Description */}
