@@ -3,6 +3,7 @@ const pdfParseLib = require('pdf-parse');
 const pdfParse = pdfParseLib.default || pdfParseLib;
 
 export async function POST(req: NextRequest) {
+    console.log("POST /api/extract received");
     try {
         const formData = await req.formData();
         const file = formData.get('file') as File;
@@ -19,6 +20,8 @@ export async function POST(req: NextRequest) {
         }
 
         const buffer = Buffer.from(await file.arrayBuffer());
+        console.log(`Extracting PDF: ${file.name}, size: ${file.size}, buffer len: ${buffer.length}`);
+
         const data = await pdfParse(buffer);
         let text = data.text;
 
@@ -42,10 +45,19 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ text: normalizedText });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('File extraction error:', error);
+
+        // Handle specific PDFJS errors if possible
+        const errorMessage = error.message || 'Failed to extract text from PDF.';
+        const isCorrupted = errorMessage.toLowerCase().includes('format') || errorMessage.toLowerCase().includes('xref');
+
         return NextResponse.json(
-            { error: 'Failed to extract text from PDF.' },
+            {
+                error: isCorrupted
+                    ? `PDF Parsing Error: The file might be corrupted or in an unsupported format. (${errorMessage})`
+                    : errorMessage
+            },
             { status: 500 }
         );
     }

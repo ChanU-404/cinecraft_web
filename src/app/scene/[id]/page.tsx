@@ -1,30 +1,165 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useScreenplay } from '@/context/ScreenplayContext';
 import {
     ArrowLeft,
-    MapPin,
     Clock,
     Camera,
     Loader2,
     ImagePlus,
     Film,
     RefreshCw,
-    Maximize2
+    Maximize2,
+    MessageSquare,
+    Send,
+    Download,
+    FileText,
+    Check,
+    Map,
+    X,
+    Lightbulb,
+    Zap
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { exportStoryboardPDF } from '@/utils/pdfExport';
 
 export default function SceneDetailPage() {
     const params = useParams();
     const router = useRouter();
-    const { scenes, storyboardCache, updateStoryboardCache } = useScreenplay();
+    const { scenes, storyboardCache, updateStoryboardCache, updateSceneIntent, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects } = useScreenplay();
     const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
+    const [isExportingAll, setIsExportingAll] = useState(false);
+
+    // Helper to get project title
+    const currentProject = projects.find(p => p.id === currentProjectId);
+    const projectTitle = currentProject?.title || "CineCraft Project";
+
+    const handleExportPDF = async () => {
+        const sceneId = decodeURIComponent(params.id as string);
+        const scene = scenes.find(s => s.id === sceneId);
+        if (!scene) return;
+
+        setIsExporting(true);
+        try {
+            await exportStoryboardPDF(scene, projectTitle);
+        } catch (error) {
+            console.error("PDF Export failed:", error);
+            alert("Failed to export PDF.");
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
+    const handleExportProjectPDF = async () => {
+        setIsExportingAll(true);
+        try {
+            // Pass ALL scenes
+            await exportStoryboardPDF(scenes, projectTitle);
+        } catch (e) {
+            console.error("Project Export failed", e);
+            alert("Failed to export Project PDF.");
+        } finally {
+            setIsExportingAll(false);
+        }
+    };
+
+    // Chat State
+    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+    const [chatInput, setChatInput] = useState("");
+    const [isChatting, setIsChatting] = useState(false);
+    const chatEndRef = useRef<HTMLDivElement>(null);
 
     const sceneId = typeof params.id === 'string' ? decodeURIComponent(params.id) : '';
     const scene = scenes.find(s => s.id === sceneId);
+
+    // Auto-scroll chat
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [chatMessages]);
+
+    const handleChatSubmit = async () => {
+        if (!chatInput.trim() || !scene) return;
+
+        const userMsg = chatInput;
+        setChatInput("");
+        setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+        setIsChatting(true);
+
+        try {
+            const res = await fetch('/api/assist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: chatMessages.concat({ role: 'user', content: userMsg }),
+                    scene: { location: scene.location, id: scene.id },
+                    shots: scene.shots
+                })
+            });
+
+            const data = await res.json();
+
+            if (data.reply) {
+                setChatMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+            }
+
+            if (data.operations && Array.isArray(data.operations)) {
+                let newShots = [...scene.shots];
+                const modifiedShotIds = new Set<string>();
+
+                for (const op of data.operations) {
+                    if (op.type === 'UPDATE_SHOT') {
+                        const idx = newShots.findIndex(s => s.id === op.id);
+                        if (idx >= 0) {
+                            newShots[idx] = { ...newShots[idx], ...op.updates };
+                            modifiedShotIds.add(op.id);
+                        }
+                    }
+                    else if (op.type === 'SPLIT_SHOT') {
+                        const idx = newShots.findIndex(s => s.id === op.id);
+                        if (idx >= 0) {
+                            newShots.splice(idx, 1, ...op.newShots);
+                            op.newShots.forEach((s: any) => modifiedShotIds.add(s.id));
+                        }
+                    }
+                    else if (op.type === 'ADD_SHOT') {
+                        const idx = newShots.findIndex(s => s.id === op.afterId);
+                        if (idx >= 0) {
+                            newShots.splice(idx + 1, 0, op.shot);
+                            modifiedShotIds.add(op.shot.id);
+                        } else {
+                            newShots.push(op.shot);
+                            modifiedShotIds.add(op.shot.id);
+                        }
+                    }
+                    else if (op.type === 'DELETE_SHOT') {
+                        newShots = newShots.filter(s => s.id !== op.id);
+                        modifiedShotIds.delete(op.id);
+                    }
+                }
+
+                updateSceneShots?.(scene.id, newShots);
+
+                // Auto-generate visuals only
+                modifiedShotIds.forEach(id => {
+                    const shot = newShots.find(s => s.id === id);
+                    if (shot) {
+                        handleGenerateStoryboard(shot, true);
+                    }
+                });
+            }
+
+        } catch (e) {
+            console.error(e);
+            setChatMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error processing that request." }]);
+        } finally {
+            setIsChatting(false);
+        }
+    };
 
     // Redirect if no scene found
     if (!scene && scenes.length === 0) {
@@ -73,6 +208,13 @@ export default function SceneDetailPage() {
     const handleGenerateStoryboard = async (shot: any, forceRegenerate = false) => {
         if (generatingShotId) return;
 
+        // Extract script context for continuity
+        const scriptContext = scene.script_blocks
+            ?.filter(b => b.type === 'action' || b.type === 'dialogue')
+            .map(b => b.type === 'dialogue' ? `${b.speaker}: ${b.text}` : b.text)
+            .slice(0, 5) // Take first 5 blocks to establish scene context
+            .join('\n') || "";
+
         setGeneratingShotId(shot.id);
         try {
             const response = await fetch('/api/storyboard', {
@@ -83,7 +225,9 @@ export default function SceneDetailPage() {
                     sceneContext: {
                         location: scene.location,
                         time: scene.time || "Day",
-                        emotion: []
+                        emotion: [],
+                        directorIntent: scene.directorIntent,
+                        contextSummary: scriptContext // Pass the script context
                     },
                     shot: {
                         type: shot.type,
@@ -147,7 +291,31 @@ export default function SceneDetailPage() {
                         {scene.location}
                     </h1>
                 </div>
-                <div className="ml-auto flex items-center gap-4 text-xs font-mono text-[#94a3b8]">
+                <div className="ml-auto flex items-center gap-3 text-xs font-mono text-[#94a3b8]">
+                    {/* Export Group */}
+                    <div className="flex items-center bg-[#1f2937] rounded-lg border border-[#334155] p-0.5">
+                        <button
+                            onClick={handleExportPDF}
+                            disabled={isExporting || isExportingAll}
+                            className="px-3 py-1.5 rounded-md hover:bg-[#334155] text-white text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+                            title="Export Current Scene"
+                        >
+                            {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                            <span>Scene</span>
+                        </button>
+                        <div className="w-px h-4 bg-[#334155] mx-0.5" />
+                        <button
+                            onClick={handleExportProjectPDF}
+                            disabled={isExporting || isExportingAll}
+                            className="px-3 py-1.5 rounded-md hover:bg-[#334155] text-[#ff365c] hover:text-white text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+                            title="Export Whole Project"
+                        >
+                            {isExportingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                            <span>Full Project</span>
+                        </button>
+                    </div>
+
+                    <div className="h-4 w-px bg-[#334155]" />
                     <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {scene.time}</span>
                 </div>
             </header>
@@ -157,8 +325,8 @@ export default function SceneDetailPage() {
 
                 {/* LEFT COLUMN: Script Reader */}
                 <div className="lg:col-span-5 space-y-8">
-                    <div className="sticky top-24">
-                        <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-8 shadow-xl max-h-[80vh] overflow-y-auto custom-scrollbar">
+                    <div className="sticky top-24 space-y-4">
+                        <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-8 shadow-xl max-h-[60vh] overflow-y-auto custom-scrollbar">
                             <div className="text-[10px] uppercase tracking-widest text-[#52525b] mb-6 font-bold border-b border-[#1f2937] pb-2">
                                 Original Script Context
                             </div>
@@ -190,6 +358,73 @@ export default function SceneDetailPage() {
                                 )}
                             </div>
                         </div>
+
+                        {/* AI Assistant Chat Interface */}
+                        <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col shadow-xl h-[400px]">
+                            <div className="p-4 border-b border-[#1f2937] flex items-center justify-between bg-[#0b0f17]/50 rounded-t-xl">
+                                <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
+                                    <MessageSquare className="w-3 h-3" /> AI Assistant Director
+                                </div>
+                                <div className="text-[8px] text-[#52525b] uppercase font-bold px-2 py-0.5 border border-[#1f2937] rounded">
+                                    Beta
+                                </div>
+                            </div>
+
+                            {/* Messages Area */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                {chatMessages.length === 0 && (
+                                    <div className="text-center text-[#334155] text-xs mt-10 italic">
+                                        Ask me to split shots, change angles, or refine the storyboard plan.
+                                    </div>
+                                )}
+                                {chatMessages.map((msg, idx) => (
+                                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                        <div className={`
+                                            max-w-[85%] p-3 rounded-lg text-xs leading-relaxed
+                                            ${msg.role === 'user'
+                                                ? 'bg-[#1f2937] text-white rounded-br-none border border-[#334155]'
+                                                : 'bg-[#0b0f17] text-[#94a3b8] rounded-bl-none border border-[#1f2937]'}
+                                        `}>
+                                            {msg.content}
+                                        </div>
+                                    </div>
+                                ))}
+                                {isChatting && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-[#0b0f17] p-3 rounded-lg rounded-bl-none border border-[#1f2937]">
+                                            <Loader2 className="w-3 h-3 animate-spin text-[#ff365c]" />
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={chatEndRef} />
+                            </div>
+
+                            {/* Input Area */}
+                            <div className="p-3 border-t border-[#1f2937] bg-[#0b0f17]/50 rounded-b-xl">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                handleChatSubmit();
+                                            }
+                                        }}
+                                        placeholder="Type instructions (e.g. 'Split shot 1.1', 'Make it a close up')..."
+                                        className="w-full bg-[#020617] border border-[#334155] rounded-lg pl-3 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-[#ff365c] placeholder:text-[#334155]"
+                                    />
+                                    <button
+                                        onClick={handleChatSubmit}
+                                        disabled={!chatInput.trim() || isChatting}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[#ff365c] hover:bg-[#ff365c]/10 rounded-md transition-colors disabled:opacity-50"
+                                    >
+                                        <Send className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -203,7 +438,7 @@ export default function SceneDetailPage() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                        {scene.shots.map((shot) => {
+                        {scene.shots.map((shot, index) => {
                             const cached = (storyboardCache || {})[shot.id];
                             const isGen = generatingShotId === shot.id;
 
@@ -238,21 +473,74 @@ export default function SceneDetailPage() {
                                     <div className="pl-8">
                                         {cached ? (
                                             <div className="grid grid-cols-3 gap-3">
-                                                {cached.map((sb: any, i: number) => (
-                                                    <div
-                                                        key={sb.variant || i}
-                                                        onClick={() => setSelectedImage(sb.imageUrl)}
-                                                        className="aspect-video bg-black rounded-lg overflow-hidden border border-[#334155] relative group/img cursor-zoom-in hover:border-white/50 transition-all"
-                                                    >
-                                                        {/* Lazy load image, immediate text feedback if fail */}
-                                                        <img
-                                                            src={sb.imageUrl}
-                                                            loading="lazy"
-                                                            className="w-full h-full object-cover"
-                                                            alt={`Storyboard ${shot.id}`}
-                                                        />
-                                                    </div>
-                                                ))}
+                                                {cached.map((sb: any, i: number) => {
+                                                    const isCover = scene.selectedThumbnailUrl === sb.imageUrl;
+                                                    const isSelectedForShot = shot.selectedImageUrl === sb.imageUrl;
+
+                                                    return (
+                                                        <div
+                                                            key={sb.variant || i}
+                                                            className={`
+                                                                relative aspect-video bg-black rounded-lg overflow-hidden border transition-all cursor-pointer group/img
+                                                                ${isSelectedForShot ? 'border-[#ff365c] ring-2 ring-[#ff365c]/50' : 'border-[#334155] hover:border-white/50'}
+                                                            `}
+                                                        >
+                                                            <img
+                                                                src={sb.imageUrl}
+                                                                loading="lazy"
+                                                                className="w-full h-full object-cover"
+                                                                alt={`Storyboard ${shot.id}`}
+                                                                onClick={() => setSelectedImage(sb.imageUrl)}
+                                                            />
+
+
+                                                            {/* Actions Overlay */}
+                                                            <div className="absolute top-2 right-2 flex gap-2">
+
+                                                                {/* Select for Timeline (Primary) */}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        selectShotImage?.(scene.id, shot.id, sb.imageUrl);
+                                                                    }}
+                                                                    className={`
+                                                                        p-1.5 rounded-md backdrop-blur-md transition-all
+                                                                        ${isSelectedForShot ? 'bg-[#ff365c] text-white' : 'bg-black/50 text-white opacity-0 group-hover/img:opacity-100 hover:bg-[#ff365c]'}
+                                                                    `}
+                                                                    title="Select for Storyboard Sequence"
+                                                                >
+                                                                    <Check className="w-3 h-3" />
+                                                                </button>
+
+                                                                {/* Set as Scene Cover (Secondary) */}
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        selectSceneThumbnail?.(scene.id, sb.imageUrl);
+                                                                    }}
+                                                                    className={`
+                                                                        p-1.5 rounded-md backdrop-blur-md transition-all
+                                                                        ${isCover ? 'bg-blue-600 text-white' : 'bg-black/50 text-white opacity-0 group-hover/img:opacity-100 hover:bg-blue-600'}
+                                                                    `}
+                                                                    title="Set as Scene Thumbnail (Cover)"
+                                                                >
+                                                                    <Maximize2 className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+
+                                                            {isSelectedForShot && (
+                                                                <div className="absolute bottom-2 left-2 bg-[#ff365c] text-[8px] font-black px-1.5 py-0.5 rounded text-white tracking-widest uppercase">
+                                                                    In Sequence
+                                                                </div>
+                                                            )}
+                                                            {isCover && !isSelectedForShot && (
+                                                                <div className="absolute bottom-2 left-2 bg-blue-600 text-[8px] font-black px-1.5 py-0.5 rounded text-white tracking-widest uppercase">
+                                                                    Cover
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         ) : (
                                             <button
@@ -286,7 +574,46 @@ export default function SceneDetailPage() {
                     </div>
                 </div>
 
-            </main>
-        </div>
+                {/* BOTTOM: Visual Storyboard Timeline - Full Width */}
+                <div className="col-span-1 lg:col-span-12 mt-10 border-t border-[#1f2937] pt-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
+                                <Film className="w-4 h-4" /> Storyboard Sequence
+                            </div>
+                            <div className="h-px w-32 bg-[#1f2937]" />
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar">
+                        {scene.shots.map((shot, idx) => (
+                            <div key={shot.id} className="min-w-[200px] w-[200px] flex flex-col gap-2 group">
+                                <div className="aspect-video bg-[#020617] rounded-lg border border-[#334155] overflow-hidden relative">
+                                    {shot.selectedImageUrl ? (
+                                        <img src={shot.selectedImageUrl} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-[#334155]">
+                                            <ImagePlus className="w-6 h-6 opacity-20" />
+                                        </div>
+                                    )}
+                                    <div className="absolute top-2 left-2 bg-black/50 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
+                                        {shot.id}
+                                    </div>
+                                </div>
+                                <div className="flex items-start justify-between gap-2">
+                                    <p className="text-[10px] text-[#94a3b8] line-clamp-2 leading-tight flex-1">
+                                        {shot.description}
+                                    </p>
+                                    <div className="text-[9px] font-mono text-[#52525b] uppercase border border-[#1f2937] px-1 rounded">
+                                        {shot.type.substring(0, 4)}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+            </main >
+        </div >
     );
 }

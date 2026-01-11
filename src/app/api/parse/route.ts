@@ -70,43 +70,69 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    console.log("Starting screenplay parse. Text length:", scriptText.length);
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // Upgraded to gpt-4o for full context capability
+      model: "gpt-4o",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: scriptText },
       ],
       response_format: { type: "json_object" },
+      max_tokens: 16384, // Increased to 16k to handle long screenplay outputs
     });
 
     const content = completion.choices[0].message.content;
 
     if (!content) {
+      console.error("OpenAI returned empty content");
       throw new Error("No content returned from OpenAI");
     }
 
-    const json = JSON.parse(content);
+    // Check for truncation
+    if (completion.choices[0].finish_reason === 'length') {
+      console.warn("Warniing: Output truncated due to token limit.");
+      // We might still try to parse if we can fix the JSON, but for now, error out with specific message
+      throw new Error("Screenplay is too long for a single pass. Try splitting the PDF.");
+    }
+
+    let json;
+    try {
+      json = JSON.parse(content);
+    } catch (e) {
+      console.error("JSON Parse Error. Raw content snippet:", content.substring(0, 200));
+      console.error("Content end:", content.slice(-200));
+      throw new Error("AI response was not valid JSON. (Parsing Error)");
+    }
 
     // 최소 구조 검증 (MVP 방어선)
     if (!json.scenes || !Array.isArray(json.scenes)) {
-      throw new Error("Invalid JSON structure from OpenAI");
+      console.error("Invalid JSON structure - missing 'scenes' array:", json);
+      throw new Error("AI returned invalid structure. (Missing 'scenes')");
     }
 
     // SANITIZATION: Clean up IDs to prevent routing errors
-    // Replace spaces, hashtags, and special chars with underscores to ensure URL safety
     json.scenes = json.scenes.map((scene: any, idx: number) => ({
       ...scene,
       id: scene.id
-        ? String(scene.id).replace(/[^a-zA-Z0-9가-힣\-_]/g, '_') // Allow Korean, Alphanum, Dash, Underscore
+        ? String(scene.id).replace(/[^a-zA-Z0-9가-힣\-_]/g, '_')
         : `SCENE_${idx + 1}`
     }));
 
+    console.log("Parsing successful. Number of scenes:", json.scenes.length);
     return NextResponse.json(json);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Screenplay parsing error:", error);
+
+    // Better Error Message for Client
+    let clientMsg = "Failed to process screenplay";
+    if (error.message.includes("JSON")) clientMsg = "AI output formatting failed. Please try again.";
+    if (error.message.includes("too long")) clientMsg = "Screenplay is too long. Please split the PDF into smaller parts.";
+    if (error.status === 429) clientMsg = "AI Usage Limit Exceeded. Please try again later.";
+
     return NextResponse.json(
-      { error: "Failed to process screenplay" },
+      { error: clientMsg, debug: error.message },
       { status: 500 }
     );
   }
