@@ -547,7 +547,7 @@ export default function SceneDetailPage() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                        {scene.shots.map((shot, index) => {
+                        {scene.shots.map((shot: any, index) => {
                             const cached = (storyboardCache || {})[shot.id];
                             const isGen = generatingShotId === shot.id;
                             const isLightingLoading = loadingLightingId === shot.id;
@@ -569,7 +569,7 @@ export default function SceneDetailPage() {
                                                 <button
                                                     onClick={() => {
                                                         if (shot.lightingAnalysis) {
-                                                            setActiveLightingData(shot.lightingAnalysis);
+                                                            setActiveLightingData(shot.lightingAnalysis as any);
                                                             setShowLightingModal(true);
                                                         } else {
                                                             handleGenerateLighting(shot);
