@@ -1,18 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { FloorPlanData } from '@/types/floor-plan';
-import { LightingAnalysisData } from '@/types/lighting';
 
-// Define Scene types (mirroring what we use in page.tsx/data)
 export interface Shot {
     id: string;
     type: string;
     camera: string;
     description: string;
     selectedImageUrl?: string; // Phase 18: Selected story image
-    floorPlanJson?: FloorPlanData; // Phase 20: Generated floor plan data (JSON)
-    lightingAnalysis?: LightingAnalysisData; // Phase 22: Lighting Reasoning
 }
 
 export interface ScriptBlock {
