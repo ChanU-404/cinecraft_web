@@ -96,7 +96,7 @@ export function LoginView({ onGuestEnter }: LoginViewProps) {
                         onClick={onGuestEnter}
                         className="w-full text-[#94a3b8] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
                     >
-                        Experience for Free (Guest Mode)
+                        Experience for Free (Guest Access)
                     </button>
 
                 </div>
