@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
     let clientMsg = "Failed to process screenplay";
     if (error.message.includes("JSON")) clientMsg = "AI output formatting failed. Please try again.";
     if (error.message.includes("too long")) clientMsg = "Screenplay is too long. Please split the PDF into smaller parts.";
+    if (error.message.includes("Missing OPENAI_API_KEY")) clientMsg = "Configuration Error: API Key is missing on the server.";
     if (error.status === 429) clientMsg = "AI Usage Limit Exceeded. Please try again later.";
 
     return NextResponse.json(
