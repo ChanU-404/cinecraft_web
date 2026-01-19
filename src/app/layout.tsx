@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ScreenplayProvider } from "@/context/ScreenplayContext";
+import { SubscriptionProvider } from "@/context/SubscriptionContext";
 
 import { Providers } from "@/components/Providers";
 
@@ -26,14 +27,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        suppressHydrationWarning
       >
         <Providers>
-          <ScreenplayProvider>
-            {children}
-          </ScreenplayProvider>
+          <SubscriptionProvider>
+            <ScreenplayProvider>
+              {children}
+            </ScreenplayProvider>
+          </SubscriptionProvider>
         </Providers>
       </body>
     </html>

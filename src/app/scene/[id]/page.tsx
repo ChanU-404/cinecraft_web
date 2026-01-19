@@ -250,7 +250,7 @@ export default function SceneDetailPage() {
 
 
     return (
-        <div className="bg-[#0b0f17] min-h-screen text-[#e8eefc] font-sans">
+        <div className="bg-[#0b0f17] h-screen flex flex-col overflow-hidden text-[#e8eefc] font-sans">
 
             {/* Lightbox */}
             <AnimatePresence>
@@ -275,8 +275,8 @@ export default function SceneDetailPage() {
                 )}
             </AnimatePresence>
 
-            {/* Header */}
-            <header className="fixed top-0 left-0 right-0 h-16 bg-[#0b0f17]/90 backdrop-blur-md border-b border-[#1f2937] flex items-center px-6 z-50">
+            {/* Header - Flex None to stay at top */}
+            <header className="flex-none h-16 bg-[#0b0f17]/90 backdrop-blur-md border-b border-[#1f2937] flex items-center px-6 z-50">
                 <button
                     onClick={() => router.push('/')}
                     className="mr-6 p-2 hover:bg-[#1f2937] rounded-full transition-colors group"
@@ -318,302 +318,304 @@ export default function SceneDetailPage() {
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="pt-24 pb-20 px-6 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
+            {/* Main Content Scrollable Area */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+                <main className="py-10 px-6 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-                {/* LEFT COLUMN: Script Reader */}
-                <div className="lg:col-span-5 space-y-8">
-                    <div className="sticky top-24 space-y-4">
-                        <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-8 shadow-xl max-h-[60vh] overflow-y-auto custom-scrollbar">
-                            <div className="text-[10px] uppercase tracking-widest text-[#52525b] mb-6 font-bold border-b border-[#1f2937] pb-2">
-                                Original Script Context
-                            </div>
-                            <div className="space-y-6 font-serif text-[#cbd5f5] leading-loose">
-                                {scene.script_blocks?.map((block, idx) => {
-                                    if (block.type === 'slugline') {
+                    {/* LEFT COLUMN: Script Reader */}
+                    <div className="lg:col-span-5 space-y-8">
+                        <div className="sticky top-6 space-y-4">
+                            <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-8 shadow-xl max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                <div className="text-[10px] uppercase tracking-widest text-[#52525b] mb-6 font-bold border-b border-[#1f2937] pb-2">
+                                    Original Script Context
+                                </div>
+                                <div className="space-y-6 font-serif text-[#cbd5f5] leading-loose">
+                                    {scene.script_blocks?.map((block, idx) => {
+                                        if (block.type === 'slugline') {
+                                            return (
+                                                <div key={idx} className="font-bold text-white uppercase tracking-widest text-sm border-b border-[#334155] pb-2 mb-4 mt-8">
+                                                    {block.text}
+                                                </div>
+                                            );
+                                        }
+                                        if (block.type === 'dialogue') {
+                                            return (
+                                                <div key={idx} className="flex flex-col items-center text-center px-4 md:px-12 my-6">
+                                                    <div className="text-[#ff365c] font-bold text-xs uppercase tracking-wider mb-1">{block.speaker}</div>
+                                                    <div className="text-white/90">{block.text}</div>
+                                                </div>
+                                            );
+                                        }
                                         return (
-                                            <div key={idx} className="font-bold text-white uppercase tracking-widest text-sm border-b border-[#334155] pb-2 mb-4 mt-8">
+                                            <p key={idx} className="text-[#94a3b8]">
                                                 {block.text}
-                                            </div>
+                                            </p>
                                         );
-                                    }
-                                    if (block.type === 'dialogue') {
-                                        return (
-                                            <div key={idx} className="flex flex-col items-center text-center px-4 md:px-12 my-6">
-                                                <div className="text-[#ff365c] font-bold text-xs uppercase tracking-wider mb-1">{block.speaker}</div>
-                                                <div className="text-white/90">{block.text}</div>
-                                            </div>
-                                        );
-                                    }
-                                    return (
-                                        <p key={idx} className="text-[#94a3b8]">
-                                            {block.text}
-                                        </p>
-                                    );
-                                })}
-                                {!scene.script_blocks && (
-                                    <p className="opacity-50 italic">Raw script context not available for this scene.</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* AI Assistant Chat Interface */}
-                        <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col shadow-xl h-[400px]">
-                            <div className="p-4 border-b border-[#1f2937] flex items-center justify-between bg-[#0b0f17]/50 rounded-t-xl">
-                                <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
-                                    <MessageSquare className="w-3 h-3" /> AI Assistant Director
-                                </div>
-                                <div className="text-[8px] text-[#52525b] uppercase font-bold px-2 py-0.5 border border-[#1f2937] rounded">
-                                    Beta
+                                    })}
+                                    {!scene.script_blocks && (
+                                        <p className="opacity-50 italic">Raw script context not available for this scene.</p>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Messages Area */}
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                                {chatMessages.length === 0 && (
-                                    <div className="text-center text-[#334155] text-xs mt-10 italic">
-                                        Ask me to split shots, change angles, or refine the storyboard plan.
+                            {/* AI Assistant Chat Interface */}
+                            <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col shadow-xl h-[400px]">
+                                <div className="p-4 border-b border-[#1f2937] flex items-center justify-between bg-[#0b0f17]/50 rounded-t-xl">
+                                    <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
+                                        <MessageSquare className="w-3 h-3" /> AI Assistant Director
                                     </div>
-                                )}
-                                {chatMessages.map((msg, idx) => (
-                                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`
+                                    <div className="text-[8px] text-[#52525b] uppercase font-bold px-2 py-0.5 border border-[#1f2937] rounded">
+                                        Beta
+                                    </div>
+                                </div>
+
+                                {/* Messages Area */}
+                                <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                    {chatMessages.length === 0 && (
+                                        <div className="text-center text-[#334155] text-xs mt-10 italic">
+                                            Ask me to split shots, change angles, or refine the storyboard plan.
+                                        </div>
+                                    )}
+                                    {chatMessages.map((msg, idx) => (
+                                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`
                                             max-w-[85%] p-3 rounded-lg text-xs leading-relaxed
                                             ${msg.role === 'user'
-                                                ? 'bg-[#1f2937] text-white rounded-br-none border border-[#334155]'
-                                                : 'bg-[#0b0f17] text-[#94a3b8] rounded-bl-none border border-[#1f2937]'}
+                                                    ? 'bg-[#1f2937] text-white rounded-br-none border border-[#334155]'
+                                                    : 'bg-[#0b0f17] text-[#94a3b8] rounded-bl-none border border-[#1f2937]'}
                                         `}>
-                                            {msg.content}
+                                                {msg.content}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                                {isChatting && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-[#0b0f17] p-3 rounded-lg rounded-bl-none border border-[#1f2937]">
-                                            <Loader2 className="w-3 h-3 animate-spin text-[#ff365c]" />
+                                    ))}
+                                    {isChatting && (
+                                        <div className="flex justify-start">
+                                            <div className="bg-[#0b0f17] p-3 rounded-lg rounded-bl-none border border-[#1f2937]">
+                                                <Loader2 className="w-3 h-3 animate-spin text-[#ff365c]" />
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
-                                <div ref={chatEndRef} />
-                            </div>
+                                    )}
+                                    <div ref={chatEndRef} />
+                                </div>
 
-                            {/* Input Area */}
-                            <div className="p-3 border-t border-[#1f2937] bg-[#0b0f17]/50 rounded-b-xl">
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && !e.shiftKey) {
-                                                e.preventDefault();
-                                                handleChatSubmit();
-                                            }
-                                        }}
-                                        placeholder="Type instructions (e.g. 'Split shot 1.1', 'Make it a close up')..."
-                                        className="w-full bg-[#020617] border border-[#334155] rounded-lg pl-3 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-[#ff365c] placeholder:text-[#334155]"
-                                    />
-                                    <button
-                                        onClick={handleChatSubmit}
-                                        disabled={!chatInput.trim() || isChatting}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[#ff365c] hover:bg-[#ff365c]/10 rounded-md transition-colors disabled:opacity-50"
-                                    >
-                                        <Send className="w-3 h-3" />
-                                    </button>
+                                {/* Input Area */}
+                                <div className="p-3 border-t border-[#1f2937] bg-[#0b0f17]/50 rounded-b-xl">
+                                    <div className="relative">
+                                        <input
+                                            type="text"
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleChatSubmit();
+                                                }
+                                            }}
+                                            placeholder="Type instructions (e.g. 'Split shot 1.1', 'Make it a close up')..."
+                                            className="w-full bg-[#020617] border border-[#334155] rounded-lg pl-3 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-[#ff365c] placeholder:text-[#334155]"
+                                        />
+                                        <button
+                                            onClick={handleChatSubmit}
+                                            disabled={!chatInput.trim() || isChatting}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-[#ff365c] hover:bg-[#ff365c]/10 rounded-md transition-colors disabled:opacity-50"
+                                        >
+                                            <Send className="w-3 h-3" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {/* RIGHT COLUMN: Visuals & Shots */}
-                <div className="lg:col-span-7 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <div className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2">
-                            <Camera className="w-4 h-4 text-[#ff365c]" />
-                            Shot List ({scene.shots.length})
+                    {/* RIGHT COLUMN: Visuals & Shots */}
+                    <div className="lg:col-span-7 space-y-6">
+                        <div className="flex items-center justify-between">
+                            <div className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2">
+                                <Camera className="w-4 h-4 text-[#ff365c]" />
+                                Shot List ({scene.shots.length})
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="grid grid-cols-1 gap-4">
-                        {scene.shots.map((shot: any, index: number) => {
-                            const cached = (storyboardCache || {})[shot.id];
-                            const isGen = generatingShotId === shot.id;
+                        <div className="grid grid-cols-1 gap-4">
+                            {scene.shots.map((shot: any, index: number) => {
+                                const cached = (storyboardCache || {})[shot.id];
+                                const isGen = generatingShotId === shot.id;
 
-                            return (
-                                <div key={shot.id} className="group bg-[#020617] border border-[#1f2937] rounded-xl p-5 hover:border-[#334155] transition-all flex flex-col gap-5">
+                                return (
+                                    <div key={shot.id} className="group bg-[#020617] border border-[#1f2937] rounded-xl p-5 hover:border-[#334155] transition-all flex flex-col gap-5">
 
-                                    {/* Header */}
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-[#ff365c] font-black">{shot.id}</span>
-                                            <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.type}</span>
-                                            <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.camera}</span>
+                                        {/* Header */}
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[#ff365c] font-black">{shot.id}</span>
+                                                <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.type}</span>
+                                                <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.camera}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {cached && (
+                                                    <button
+                                                        onClick={() => handleGenerateStoryboard(shot, true)}
+                                                        disabled={isGen}
+                                                        className="p-2 text-[#475569] hover:text-[#ff365c] hover:bg-[#ff365c]/10 rounded-full transition-colors disabled:opacity-50"
+                                                        title="Regenerate Visuals"
+                                                    >
+                                                        <RefreshCw className={`w-4 h-4 ${isGen ? 'animate-spin' : ''}`} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            {cached && (
-                                                <button
-                                                    onClick={() => handleGenerateStoryboard(shot, true)}
-                                                    disabled={isGen}
-                                                    className="p-2 text-[#475569] hover:text-[#ff365c] hover:bg-[#ff365c]/10 rounded-full transition-colors disabled:opacity-50"
-                                                    title="Regenerate Visuals"
-                                                >
-                                                    <RefreshCw className={`w-4 h-4 ${isGen ? 'animate-spin' : ''}`} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
 
-                                    {/* Description */}
-                                    <p className="text-sm text-[#cbd5f5] leading-relaxed pl-8 border-l-2 border-[#1f2937]">
-                                        {shot.description}
-                                    </p>
+                                        {/* Description */}
+                                        <p className="text-sm text-[#cbd5f5] leading-relaxed pl-8 border-l-2 border-[#1f2937]">
+                                            {shot.description}
+                                        </p>
 
-                                    {/* Visuals */}
-                                    <div className="pl-8">
-                                        {cached ? (
-                                            <div className="grid grid-cols-3 gap-3">
-                                                {cached.map((sb: any, i: number) => {
-                                                    const isCover = scene.selectedThumbnailUrl === sb.imageUrl;
-                                                    const isSelectedForShot = shot.selectedImageUrl === sb.imageUrl;
+                                        {/* Visuals */}
+                                        <div className="pl-8">
+                                            {cached ? (
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {cached.map((sb: any, i: number) => {
+                                                        const isCover = scene.selectedThumbnailUrl === sb.imageUrl;
+                                                        const isSelectedForShot = shot.selectedImageUrl === sb.imageUrl;
 
-                                                    return (
-                                                        <div
-                                                            key={sb.variant || i}
-                                                            className={`
+                                                        return (
+                                                            <div
+                                                                key={sb.variant || i}
+                                                                className={`
                                                                 relative aspect-video bg-black rounded-lg overflow-hidden border transition-all cursor-pointer group/img
                                                                 ${isSelectedForShot ? 'border-[#ff365c] ring-2 ring-[#ff365c]/50' : 'border-[#334155] hover:border-white/50'}
                                                             `}
-                                                        >
-                                                            <img
-                                                                src={sb.imageUrl}
-                                                                loading="lazy"
-                                                                className="w-full h-full object-cover"
-                                                                alt={`Storyboard ${shot.id}`}
-                                                                onClick={() => setSelectedImage(sb.imageUrl)}
-                                                            />
+                                                            >
+                                                                <img
+                                                                    src={sb.imageUrl}
+                                                                    loading="lazy"
+                                                                    className="w-full h-full object-cover"
+                                                                    alt={`Storyboard ${shot.id}`}
+                                                                    onClick={() => setSelectedImage(sb.imageUrl)}
+                                                                />
 
 
-                                                            {/* Actions Overlay */}
-                                                            <div className="absolute top-2 right-2 flex gap-2">
+                                                                {/* Actions Overlay */}
+                                                                <div className="absolute top-2 right-2 flex gap-2">
 
-                                                                {/* Select for Timeline (Primary) */}
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        selectShotImage?.(scene.id, shot.id, sb.imageUrl);
-                                                                    }}
-                                                                    className={`
+                                                                    {/* Select for Timeline (Primary) */}
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            selectShotImage?.(scene.id, shot.id, sb.imageUrl);
+                                                                        }}
+                                                                        className={`
                                                                         p-1.5 rounded-md backdrop-blur-md transition-all
                                                                         ${isSelectedForShot ? 'bg-[#ff365c] text-white' : 'bg-black/50 text-white opacity-0 group-hover/img:opacity-100 hover:bg-[#ff365c]'}
                                                                     `}
-                                                                    title="Select for Storyboard Sequence"
-                                                                >
-                                                                    <Check className="w-3 h-3" />
-                                                                </button>
+                                                                        title="Select for Storyboard Sequence"
+                                                                    >
+                                                                        <Check className="w-3 h-3" />
+                                                                    </button>
 
-                                                                {/* Set as Scene Cover (Secondary) */}
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        selectSceneThumbnail?.(scene.id, sb.imageUrl);
-                                                                    }}
-                                                                    className={`
+                                                                    {/* Set as Scene Cover (Secondary) */}
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            selectSceneThumbnail?.(scene.id, sb.imageUrl);
+                                                                        }}
+                                                                        className={`
                                                                         p-1.5 rounded-md backdrop-blur-md transition-all
                                                                         ${isCover ? 'bg-blue-600 text-white' : 'bg-black/50 text-white opacity-0 group-hover/img:opacity-100 hover:bg-blue-600'}
                                                                     `}
-                                                                    title="Set as Scene Thumbnail (Cover)"
-                                                                >
-                                                                    <Maximize2 className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
+                                                                        title="Set as Scene Thumbnail (Cover)"
+                                                                    >
+                                                                        <Maximize2 className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
 
-                                                            {isSelectedForShot && (
-                                                                <div className="absolute bottom-2 left-2 bg-[#ff365c] text-[8px] font-black px-1.5 py-0.5 rounded text-white tracking-widest uppercase">
-                                                                    In Sequence
-                                                                </div>
-                                                            )}
-                                                            {isCover && !isSelectedForShot && (
-                                                                <div className="absolute bottom-2 left-2 bg-blue-600 text-[8px] font-black px-1.5 py-0.5 rounded text-white tracking-widest uppercase">
-                                                                    Cover
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        ) : (
-                                            <button
-                                                onClick={() => handleGenerateStoryboard(shot)}
-                                                disabled={isGen}
-                                                className={`
+                                                                {isSelectedForShot && (
+                                                                    <div className="absolute bottom-2 left-2 bg-[#ff365c] text-[8px] font-black px-1.5 py-0.5 rounded text-white tracking-widest uppercase">
+                                                                        In Sequence
+                                                                    </div>
+                                                                )}
+                                                                {isCover && !isSelectedForShot && (
+                                                                    <div className="absolute bottom-2 left-2 bg-blue-600 text-[8px] font-black px-1.5 py-0.5 rounded text-white tracking-widest uppercase">
+                                                                        Cover
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    onClick={() => handleGenerateStoryboard(shot)}
+                                                    disabled={isGen}
+                                                    className={`
                                                     w-full h-32 border-2 border-dashed border-[#1f2937] rounded-xl flex flex-col items-center justify-center gap-2
                                                     hover:border-[#ff365c]/40 hover:bg-[#ff365c]/5 transition-all text-[#64748b] group-hover:text-[#94a3b8]
                                                     ${isGen ? 'opacity-50 cursor-not-allowed' : ''}
                                                 `}
-                                            >
-                                                {isGen ? (
-                                                    <div className="flex flex-col items-center gap-2">
-                                                        <Loader2 className="w-6 h-6 animate-spin text-[#ff365c]" />
-                                                        <span className="text-xs font-bold text-[#ff365c]">Generating Visuals...</span>
-                                                        <span className="text-[10px] text-[#52525b]">This may take up to 20s</span>
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <ImagePlus className="w-6 h-6" />
-                                                        <span className="text-xs font-bold uppercase tracking-widest">Generate Visuals</span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        )}
+                                                >
+                                                    {isGen ? (
+                                                        <div className="flex flex-col items-center gap-2">
+                                                            <Loader2 className="w-6 h-6 animate-spin text-[#ff365c]" />
+                                                            <span className="text-xs font-bold text-[#ff365c]">Generating Visuals...</span>
+                                                            <span className="text-[10px] text-[#52525b]">This may take up to 20s</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <ImagePlus className="w-6 h-6" />
+                                                            <span className="text-xs font-bold uppercase tracking-widest">Generate Visuals</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            )}
+                                        </div>
+
                                     </div>
-
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* BOTTOM: Visual Storyboard Timeline - Full Width */}
-                <div className="col-span-1 lg:col-span-12 mt-10 border-t border-[#1f2937] pt-8">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
-                                <Film className="w-4 h-4" /> Storyboard Sequence
-                            </div>
-                            <div className="h-px w-32 bg-[#1f2937]" />
+                                );
+                            })}
                         </div>
                     </div>
 
-                    <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar">
-                        {scene.shots.map((shot: any, idx: number) => (
-                            <div key={shot.id} className="min-w-[200px] w-[200px] flex flex-col gap-2 group">
-                                <div className="aspect-video bg-[#020617] rounded-lg border border-[#334155] overflow-hidden relative">
-                                    {shot.selectedImageUrl ? (
-                                        <img src={shot.selectedImageUrl} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-[#334155]">
-                                            <ImagePlus className="w-6 h-6 opacity-20" />
-                                        </div>
-                                    )}
-                                    <div className="absolute top-2 left-2 bg-black/50 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
-                                        {shot.id}
-                                    </div>
+                    {/* BOTTOM: Visual Storyboard Timeline - Full Width */}
+                    <div className="col-span-1 lg:col-span-12 mt-10 border-t border-[#1f2937] pt-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
+                                    <Film className="w-4 h-4" /> Storyboard Sequence
                                 </div>
-                                <div className="flex items-start justify-between gap-2">
-                                    <p className="text-[10px] text-[#94a3b8] line-clamp-2 leading-tight flex-1">
-                                        {shot.description}
-                                    </p>
-                                    <div className="text-[9px] font-mono text-[#52525b] uppercase border border-[#1f2937] px-1 rounded">
-                                        {shot.type.substring(0, 4)}
-                                    </div>
-                                </div>
+                                <div className="h-px w-32 bg-[#1f2937]" />
                             </div>
-                        ))}
-                    </div>
-                </div>
+                        </div>
 
-            </main >
+                        <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar">
+                            {scene.shots.map((shot: any, idx: number) => (
+                                <div key={shot.id} className="min-w-[200px] w-[200px] flex flex-col gap-2 group">
+                                    <div className="aspect-video bg-[#020617] rounded-lg border border-[#334155] overflow-hidden relative">
+                                        {shot.selectedImageUrl ? (
+                                            <img src={shot.selectedImageUrl} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-[#334155]">
+                                                <ImagePlus className="w-6 h-6 opacity-20" />
+                                            </div>
+                                        )}
+                                        <div className="absolute top-2 left-2 bg-black/50 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
+                                            {shot.id}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start justify-between gap-2">
+                                        <p className="text-[10px] text-[#94a3b8] line-clamp-2 leading-tight flex-1">
+                                            {shot.description}
+                                        </p>
+                                        <div className="text-[9px] font-mono text-[#52525b] uppercase border border-[#1f2937] px-1 rounded">
+                                            {shot.type.substring(0, 4)}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                </main >
+            </div>
         </div >
     );
 }

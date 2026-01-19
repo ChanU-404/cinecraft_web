@@ -17,7 +17,8 @@ import {
   Trash2,
   FolderOpen,
   Pencil,
-  ClipboardList
+  ClipboardList,
+  LogOut
 } from 'lucide-react';
 import { useScreenplay } from '@/context/ScreenplayContext';
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -26,6 +27,10 @@ import { generateProductionDocuments } from '@/utils/documentGenerator';
 import { CallSheetView } from '@/components/documents/CallSheetView';
 import { ShootingScheduleView } from '@/components/documents/ShootingScheduleView';
 import { CallSheetData, ShootingScheduleData } from '@/types/production';
+import { LoginView } from '@/components/LoginView';
+import { useSubscription } from '@/context/SubscriptionContext';
+import { UpgradeModal } from '@/components/UpgradeModal';
+import { Lock } from 'lucide-react';
 
 export default function CineCraftWorkspace() {
   const { data: session, status } = useSession();
@@ -44,8 +49,12 @@ export default function CineCraftWorkspace() {
     isSaving
   } = useScreenplay();
 
+  const { tier, setTier, checkPermission, isGuest, usage, quota } = useSubscription();
+
   const [activeIdx, setActiveIdx] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [guestEntered, setGuestEntered] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
 
@@ -53,6 +62,7 @@ export default function CineCraftWorkspace() {
 
   const [extractionComplete, setExtractionComplete] = useState(false);
   const [extractedText, setExtractedText] = useState("");
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
 
   // Project-Level Pre-Production State
   const [interviewOpen, setInterviewOpen] = useState(false);
@@ -64,6 +74,12 @@ export default function CineCraftWorkspace() {
   const currentProjectTitle = projects.find(p => p.id === currentProjectId)?.title || "Untitled Project";
 
   const handleStartPreProd = () => {
+    const perm = checkPermission('export'); // Using 'export' permission for pre-prod docs
+    if (!perm.allowed) {
+      setUpgradeModalOpen(true);
+      return;
+    }
+
     if (scenes.length === 0) {
       alert("먼저 시나리오를 업로드하고 분석해야 합니다.");
       return;
@@ -101,20 +117,17 @@ export default function CineCraftWorkspace() {
       const pdf = await loadingTask.promise;
 
       let fullText = "";
-      setStatusMessage(`Extracting text from ${pdf.numPages} pages...`);
+      setStatusMessage(`Extracting text from ${pdf.numPages} pages (High Speed Mode)...`);
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
+      // Parallelize Page Processing
+      const pagePromises = Array.from({ length: pdf.numPages }, (_, i) => i + 1).map(async (pageNum) => {
+        const page = await pdf.getPage(pageNum);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(" ");
-        fullText += pageText + "\n\n";
+        return textContent.items.map((item: any) => item.str).join(" ");
+      });
 
-        if (i % 5 === 0) {
-          setStatusMessage(`Processing... (${i}/${pdf.numPages})`);
-        }
-      }
+      const pageTexts = await Promise.all(pagePromises);
+      fullText = pageTexts.join("\n\n");
 
       if (!fullText.trim()) {
         throw new Error("No text content found in PDF. Is this an image-only scan?");
@@ -201,6 +214,29 @@ export default function CineCraftWorkspace() {
     container.addEventListener('wheel', handleWheel, { passive: false });
     return () => container.removeEventListener('wheel', handleWheel);
   }, []);
+
+  // DEV TOOL: Toggle Tier in UI (Invisible in Prod ideally, but useful here)
+  React.useEffect(() => {
+    // @ts-ignore
+    window.toggleTier = () => setTier(tier === 'FREE' ? 'PRO' : 'FREE');
+  }, [tier]);
+
+  if (status === "loading") {
+    return (
+      <div className="h-screen bg-[#020617] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#ff365c]" />
+      </div>
+    );
+  }
+
+  if (status !== "authenticated" && !guestEntered) {
+    return <LoginView onGuestEnter={() => setGuestEntered(true)} />;
+  }
+
+  // Guest Limitation: Truncate Scenes
+  const displayScenes = isGuest ? scenes.slice(0, 3) : scenes;
+
+
 
   return (
     <div className="flex bg-[#0b0f17] text-[#e8eefc] h-screen overflow-hidden font-sans select-none relative">
@@ -317,68 +353,64 @@ export default function CineCraftWorkspace() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <aside className="w-[280px] bg-[#020617] border-r border-[#1f2937] p-6 flex flex-col gap-8 z-20">
-        <div className="text-2xl font-black italic tracking-tighter text-[#ff365c] flex items-center gap-2">
-          <Film className="w-7 h-7" /> CINECRAFT
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-2">
-          <button
-            onClick={() => {
-              createNewProject();
-              setIsModalOpen(true);
+      <AnimatePresence>
+        {upgradeModalOpen && (
+          <UpgradeModal
+            currentTier={tier as 'FREE' | 'GUEST'}
+            onUiClose={() => setUpgradeModalOpen(false)}
+            onUpgrade={() => {
+              setTier('PRO');
+              setUpgradeModalOpen(false);
+              alert("Welcome to Pro! (Simulation)");
             }}
-            className="w-full bg-[#ff365c]/10 border border-[#ff365c]/30 rounded-xl p-4 text-center cursor-pointer hover:bg-[#ff365c]/20 hover:border-[#ff365c] transition-all group"
-          >
-            <FileUp className="w-5 h-5 mx-auto mb-2 text-[#ff365c]" />
-            <div className="text-[11px] font-bold text-[#ff365c]">New Screenplay Analysis</div>
-          </button>
+          />
+        )}
+      </AnimatePresence>
 
-          {/* Manual Save & Status */}
-          {currentProjectId && (
-            <button
-              onClick={() => saveCurrentProject?.()}
-              disabled={isSaving}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-xl p-3 flex items-center justify-center gap-2 hover:bg-[#334155] transition-all disabled:opacity-50"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#94a3b8]" />
-                  <span className="text-xs font-bold text-[#94a3b8]">Saving...</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span className="text-xs font-bold text-emerald-500">Save Project</span>
-                </>
-              )}
-            </button>
-          )}
+      {/* Sidebar */}
+      {/* Sidebar - Re-designed for Clarity */}
+      <aside className="w-[280px] bg-[#020617] border-r border-[#1f2937] flex flex-col z-20">
+
+        {/* Brand */}
+        <div className="h-16 flex items-center px-6 border-b border-[#1f2937]">
+          <div className="text-xl font-black italic tracking-tighter text-[#ff365c] flex items-center gap-2">
+            <Film className="w-6 h-6" /> CINECRAFT
+          </div>
         </div>
 
-        {/* Projects List */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
+        <div className="flex-1 flex flex-col overflow-hidden">
 
-          {/* Saved Projects Section */}
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] mb-3 font-bold opacity-40 px-2 flex items-center gap-2">
-              <FolderOpen className="w-3 h-3" /> Saved Projects
+          {/* Section 1: Project Library */}
+          <div className="p-4 border-b border-[#1f2937] bg-[#0b0f17]">
+            <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] mb-3 font-bold opacity-60 flex items-center gap-2">
+              <FolderOpen className="w-3 h-3 text-[#ff365c]" /> Project Library
             </div>
-            <div className="space-y-1">
+
+            {/* New Project Button */}
+            <button
+              onClick={() => {
+                createNewProject();
+                setIsModalOpen(true);
+              }}
+              className="w-full mb-3 bg-[#1e293b] hover:bg-[#ff365c] hover:text-white border border-[#334155] hover:border-[#ff365c] text-[#94a3b8] rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all group"
+            >
+              <div className="bg-[#334155] group-hover:bg-white/20 p-1 rounded-md transition-colors"><FileUp className="w-3.5 h-3.5" /></div>
+              <span className="text-xs font-bold uppercase tracking-wide">New Analysis</span>
+            </button>
+
+            {/* Library List (Scrollable) */}
+            <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-1">
               {projects.map(p => (
                 <div
                   key={p.id}
                   className={`
-                                group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all border text-xs
-                                ${currentProjectId === p.id
-                      ? 'bg-[#1e293b] border-[#ff365c]/50 text-white'
+                      group flex items-center justify-between p-2 rounded-md cursor-pointer transition-all border text-xs
+                      ${currentProjectId === p.id
+                      ? 'bg-[#1e293b] border-[#ff365c]/30 text-white font-bold'
                       : 'bg-transparent border-transparent text-[#64748b] hover:bg-[#1e293b] hover:text-[#94a3b8]'}
-                            `}
+                    `}
                   onClick={() => loadProject(p.id)}
                 >
-                  {/* Editable Title */}
                   {editingProjectId === p.id ? (
                     <input
                       autoFocus
@@ -397,116 +429,204 @@ export default function CineCraftWorkspace() {
                       }}
                     />
                   ) : (
-                    <div className="truncate pr-2 font-medium flex-1">
+                    <div className="truncate pr-2 flex-1">
                       {p.title}
                     </div>
                   )}
 
+                  {/* Actions on Hover */}
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p.id); }} className="p-1 hover:text-white text-[#64748b]"><Pencil className="w-3 h-3" /></button>
                     <button
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
-                        setEditingProjectId(p.id);
+                        setDeleteConfirmationId(p.id);
                       }}
-                      className="p-1 hover:text-white text-[#64748b] transition-colors"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm('Delete Project?')) deleteProjectHandler(p.id);
-                      }}
-                      className="p-1 hover:text-red-500 text-[#64748b] transition-colors"
+                      className="p-1 hover:text-red-500 text-[#64748b]"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
               ))}
-              {projects.length === 0 && (
-                <div className="text-[10px] text-[#334155] px-3 py-2 italic text-center border border-dashed border-[#1f2937] rounded-lg">
-                  No saved projects
-                </div>
-              )}
+              {projects.length === 0 && <div className="text-[10px] text-[#334155] italic text-center p-2">Empty Library</div>}
             </div>
-          </div>
 
-          {/* Current Project Scenes (Outline) */}
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] mb-3 font-bold opacity-40 px-2 mt-6">
-              Current Outline
-            </div>
-            <div className="space-y-1">
-              {scenes.map((scene, idx) => (
-                <Link
-                  key={scene.id}
-                  href={`/scene/${encodeURIComponent(scene.id)}`}
-                  className={`
-                        group p-3 rounded-lg text-xs cursor-pointer transition-all duration-300 border bg-transparent border-transparent
-                        hover:bg-[#1e293b] hover:text-[#e8eefc]
-                        ${scene.selectedThumbnailUrl ? 'text-[#e8eefc]' : 'text-[#64748b]'}
-                        `}
-                >
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`w-1 h-1 rounded-full ${scene.selectedThumbnailUrl ? 'bg-[#ff365c]' : 'bg-[#334155]'}`} />
-                    <span className="truncate font-medium">{scene.id}: {scene.location}</span>
-                  </div>
-
-                  {scene.selectedThumbnailUrl && (
-                    <div className="w-full aspect-video rounded overflow-hidden border border-[#334155]/50 mt-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                      <img
-                        src={scene.selectedThumbnailUrl}
-                        alt="Scene Cover"
-                        className="w-full h-full object-cover grayscale brightness-110 contrast-125"
-                      />
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+              {deleteConfirmationId && (
+                <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-[1px] flex items-center justify-center p-4">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-[#111827] border border-[#334155] p-4 rounded-xl shadow-2xl max-w-xs w-full text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <h3 className="text-sm font-bold text-white mb-2">Delete Project?</h3>
+                    <p className="text-[10px] text-[#94a3b8] mb-4">This action cannot be undone.</p>
+                    <div className="flex items-center gap-2 justify-center">
+                      <button
+                        onClick={() => setDeleteConfirmationId(null)}
+                        className="px-3 py-1.5 rounded-lg bg-[#1f2937] text-xs text-[#94a3b8] hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (deleteConfirmationId) deleteProjectHandler(deleteConfirmationId);
+                          setDeleteConfirmationId(null);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-xs text-white font-bold transition-colors"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  )}
-                </Link>
-              ))}
-              {scenes.length === 0 && (
-                <div className="text-[#334155] text-[10px] text-center opacity-50 p-2">
-                  (Empty)
+                  </motion.div>
+                </div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Section 2: Active Screenplay Navigation */}
+          <div className="flex-1 flex flex-col min-h-0 bg-[#020617] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] font-bold opacity-60 flex items-center gap-2">
+                <Film className="w-3 h-3 text-[#ff365c]" /> Scene Navigation
+              </div>
+              <div className="text-[9px] font-mono text-[#52525b] border border-[#1f2937] px-1.5 py-0.5 rounded">{scenes.length} Scenes</div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
+              {scenes.length > 0 ? (
+                scenes.map((scene, idx) => (
+                  <Link
+                    key={scene.id}
+                    href={`/scene/${encodeURIComponent(scene.id)}`}
+                    className={`
+                        group p-2.5 rounded-lg text-xs cursor-pointer transition-all duration-300 border bg-transparent flex items-start gap-3
+                        hover:bg-[#1e293b] hover:text-[#e8eefc] border-transparent
+                        ${scene.selectedThumbnailUrl ? 'text-[#e8eefc]' : 'text-[#64748b]'}
+                      `}
+                  >
+                    <div className={`mt-1 min-w-[4px] h-[4px] rounded-full ${scene.selectedThumbnailUrl ? 'bg-[#ff365c]' : 'bg-[#334155]'}`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold truncate opacity-90">{scene.id}: {scene.location}</div>
+                      <div className="text-[10px] opacity-50 truncate mt-0.5">{scene.summary}</div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-[#334155] gap-2 border-2 border-dashed border-[#1f2937/50] rounded-xl">
+                  <FileUp className="w-8 h-8 opacity-20" />
+                  <span className="text-[10px] uppercase tracking-widest opacity-50">No Scene Data</span>
                 </div>
               )}
             </div>
           </div>
+
         </div>
 
-        <div className="p-4 bg-[#0f172a] rounded-2xl border border-[#1f2937]">
-          {status === "authenticated" && session?.user ? (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#ff365c] to-[#ff8f00] flex items-center justify-center text-xs font-bold text-white uppercase">
-                  {session.user.name?.[0] || 'U'}
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white">{session.user.name}</div>
-                  <div className="text-[10px] text-[#94a3b8]">{session.user.email}</div>
-                </div>
-              </div>
-              <button
-                onClick={() => signOut()}
-                className="w-full py-1.5 bg-[#1f2937] hover:bg-[#334155] text-[10px] text-[#94a3b8] hover:text-white rounded-lg transition-colors border border-[#334155] uppercase font-bold tracking-widest"
-              >
-                Sign Out
-              </button>
+        {/* Usage Stats (Tier Based) */}
+        {(tier === 'FREE' || tier === 'PRO') && (
+          <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937] space-y-3">
+            <div className="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider">
+              <span>Monthly Credits</span>
+              <span className={tier === 'PRO' ? 'text-[#ff365c]' : 'text-emerald-500'}>[{tier} PLAN]</span>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="text-[10px] text-[#94a3b8] mb-2 uppercase font-bold tracking-widest">Workspace Access</div>
-              <button
-                onClick={() => signIn()}
-                className="w-full py-2 bg-[#ff365c] hover:bg-[#ff1f4b] text-white text-xs font-bold rounded-lg transition-colors shadow-lg shadow-[#ff365c]/20 uppercase tracking-widest"
-              >
-                Log In
-              </button>
-              <div className="text-[10px] text-[#52525b] text-center">
-                Sign in to save projects
+
+            {/* Drafts */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] text-[#94a3b8] font-mono">
+                <span>DRAFT IMAGES</span>
+                <span>{usage.draft} / {quota.draft}</span>
+              </div>
+              <div className="h-1.5 bg-[#1f2937] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${usage.draft >= quota.draft ? 'bg-red-500' : 'bg-[#3b82f6]'}`}
+                  style={{ width: `${Math.min(100, (usage.draft / quota.draft) * 100)}%` }}
+                />
               </div>
             </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px] text-[#94a3b8] font-mono">
+                <span>FINAL RENDERS</span>
+                <span>{usage.final} / {quota.final}</span>
+              </div>
+              <div className="h-1.5 bg-[#1f2937] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${usage.final >= quota.final ? 'bg-red-500' : 'bg-[#d946ef]'}`}
+                  style={{ width: `${Math.min(100, (usage.final / quota.final) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {tier === 'FREE' && (
+              <button
+                onClick={() => setUpgradeModalOpen(true)}
+                className="w-full mt-2 bg-gradient-to-r from-[#ff365c] to-[#ff8f00] text-white text-[10px] font-black uppercase tracking-widest py-2 rounded-lg hover:shadow-lg hover:shadow-[#ff365c]/20 transition-all active:scale-95"
+              >
+                Upgrade to Pro
+              </button>
+            )}
+          </div>
+        )
+        }
+
+
+        <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937]">
+          {/* Auto Save Status */}
+          {currentProjectId && (
+            <button
+              onClick={() => {
+                const perm = checkPermission('save');
+                if (!perm.allowed) {
+                  setUpgradeModalOpen(true);
+                  return;
+                }
+                saveCurrentProject?.();
+              }}
+              disabled={isSaving}
+              className="w-full bg-[#1e293b] border border-[#334155] rounded-xl p-3 flex items-center justify-center gap-2 hover:bg-[#334155] transition-all disabled:opacity-50 relative overflow-hidden"
+            >
+              {isGuest || tier === 'FREE' ? <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10"><Lock className="w-4 h-4 text-white/50" /></div> : null}
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-[#94a3b8]" />
+                  <span className="text-xs font-bold text-[#94a3b8]">Saving...</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <span className="text-xs font-bold text-emerald-500">Save Project</span>
+                </>
+              )}
+            </button>
           )}
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#ff365c] to-[#ff8f00] flex items-center justify-center text-xs font-bold text-white uppercase shadow-lg shadow-[#ff365c]/10">
+                {session?.user?.name?.[0] || 'U'}
+              </div>
+              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-[#0b0f17] rounded-full" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-bold text-white truncate">{session?.user?.name || 'User'}</div>
+              <div className="text-[10px] text-[#64748b] truncate">Director Mode</div>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="p-2 hover:bg-[#1f2937] hover:text-white text-[#64748b] rounded-lg transition-colors"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
+
       </aside >
 
       {/* Main Analysis Canvas */}
@@ -518,11 +638,12 @@ export default function CineCraftWorkspace() {
           </div>
 
           <div className="flex items-center gap-6">
+
             {/* Project Level Pre-Prod Trigger */}
             {scenes.length > 0 && (
               <button
                 onClick={handleStartPreProd}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all"
+                className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
               >
                 <ClipboardList className="w-4 h-4" />
                 <span>Start Pre-Production</span>
@@ -627,7 +748,7 @@ export default function CineCraftWorkspace() {
             </div>
           ) : (
             <div className="flex items-center h-full gap-12 px-24 min-w-max">
-              {scenes.map((scene, idx) => (
+              {displayScenes.map((scene, idx) => (
                 <React.Fragment key={scene.id}>
                   <Link href={`/scene/${encodeURIComponent(scene.id)}`}>
                     <div
@@ -720,6 +841,13 @@ export default function CineCraftWorkspace() {
           background: #ff365c;
         }
       `}</style>
+      {/* Dev Tier Switcher - Repositioned to Bottom Right */}
+      <div
+        className="fixed bottom-4 right-4 z-[9999] text-[10px] font-mono text-[#475569] cursor-pointer hover:text-white bg-black/40 px-2 py-1 rounded border border-[#1e293b] backdrop-blur-sm transition-all"
+        onClick={() => setTier(tier === 'GUEST' ? 'FREE' : tier === 'FREE' ? 'PRO' : 'GUEST')}
+      >
+        DEV: [{tier}]
+      </div>
     </div >
   );
 }
