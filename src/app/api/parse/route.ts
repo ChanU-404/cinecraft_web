@@ -58,10 +58,14 @@ OUTPUT FORMAT (JSON):
 `;
 
 export async function POST(req: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("Missing OPENAI_API_KEY in environment variables.");
+    }
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const { scriptText } = await req.json();
 
     if (!scriptText || typeof scriptText !== "string") {

@@ -33,10 +33,10 @@ Output JSON format:
 `.trim();
 
 export async function POST(req: NextRequest) {
-  const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-  });
   try {
+    if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
     const { messages, scene, shots } = await req.json();
 
     // Construct context

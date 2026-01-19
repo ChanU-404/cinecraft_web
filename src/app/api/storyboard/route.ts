@@ -4,10 +4,10 @@ import OpenAI from 'openai';
 
 
 export async function POST(req: NextRequest) {
-    const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-    });
     try {
+        if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
         const { shotId, sceneContext, shot } = await req.json();
 
         if (!shotId || !shot?.description) {
