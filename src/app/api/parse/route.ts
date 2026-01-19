@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+
 
 const SYSTEM_PROMPT = `
 You are an expert Korean Assistant Director (AD) and Script Supervisor.
@@ -60,6 +58,9 @@ OUTPUT FORMAT (JSON):
 `;
 
 export async function POST(req: NextRequest) {
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
   try {
     const { scriptText } = await req.json();
 

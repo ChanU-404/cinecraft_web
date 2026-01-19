@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+
 
 const SYSTEM_PROMPT = `
 You are a Screenplay Visualization Assistant. Your role is to help a director refine their shot list and storyboard plan.
@@ -35,38 +33,41 @@ Output JSON format:
 `.trim();
 
 export async function POST(req: NextRequest) {
-    try {
-        const { messages, scene, shots } = await req.json();
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+  try {
+    const { messages, scene, shots } = await req.json();
 
-        // Construct context
-        const contextMsg = `
+    // Construct context
+    const contextMsg = `
 Current Scene: ${scene.location}
 Shots:
 ${JSON.stringify(shots, null, 2)}
         `.trim();
 
-        const fullMessages = [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: contextMsg },
-            ...messages
-        ];
+    const fullMessages = [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: contextMsg },
+      ...messages
+    ];
 
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",
-            messages: fullMessages,
-            response_format: { type: "json_object" }
-        });
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: fullMessages,
+      response_format: { type: "json_object" }
+    });
 
-        const content = response.choices[0].message.content;
-        if (!content) throw new Error("No response from AI");
+    const content = response.choices[0].message.content;
+    if (!content) throw new Error("No response from AI");
 
-        return NextResponse.json(JSON.parse(content));
+    return NextResponse.json(JSON.parse(content));
 
-    } catch (error) {
-        console.error('Assistant error:', error);
-        return NextResponse.json(
-            { error: 'Failed to process request' },
-            { status: 500 }
-        );
-    }
+  } catch (error) {
+    console.error('Assistant error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process request' },
+      { status: 500 }
+    );
+  }
 }
