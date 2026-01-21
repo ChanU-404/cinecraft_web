@@ -236,18 +236,16 @@ export default function SceneDetailPage() {
 
             const data = await response.json();
 
-            // Adapter for new single-image format to existing array-based cache
-            if (data.image) {
-                // Wrap single image as 'A' variant
-                const storyboardArray = [{
-                    variant: 'A',
-                    imageUrl: data.image
-                }];
-                updateStoryboardCache(shot.id, storyboardArray);
-
-                // Select it immediately since it's the only one
-                // (Optional: if we want to auto-select the new image)
-                // selectShotImage?.(scene.id, shot.id, data.image);
+            // Adapter for new multi-image format
+            if (data.images && Array.isArray(data.images)) {
+                updateStoryboardCache(shot.id, data.images);
+                // Auto-select the first variant (A)
+                if (data.images.length > 0) {
+                    // optional: selectShotImage?.(scene.id, shot.id, data.images[0].imageUrl);
+                }
+            } else if (data.image) {
+                // Legacy fallback for single image
+                updateStoryboardCache(shot.id, [{ variant: 'A', imageUrl: data.image }]);
             }
 
         } catch (err) {

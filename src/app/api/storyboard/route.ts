@@ -1,24 +1,94 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { checkCredits, consumeCredits } from "@/lib/credits";
+import OpenAI from "openai";
 
-// Helper to translate film terms to drawing instructions
-function getComposition(type: string) {
-    const t = type.toLowerCase();
-    if (t.includes('close')) return "Focus tightly on the face or main object. Crop out the background.";
-    if (t.includes('medium')) return "Draw the character from waist up. Show some background.";
-    if (t.includes('wide') || t.includes('long')) return "Draw the full figure and the surrounding environment. Show where they are.";
-    if (t.includes('extreme close')) return "Macro view. Zoom in on a specific detail (eye, hand, object).";
-    return "Standard composition.";
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+async function refinePromptWithLLM(description: string, context: any, shot: any) {
+    const { location, time, emotion, directorIntent } = context;
+    const { type, camera } = shot;
+
+    const systemPrompt = `
+    You are an expert storyboard artist and cinematographer. 
+    Your task is to convert a raw scene description (which may be in Korean) into a precise, high-quality ENGLISH visual prompt for an AI image generator (Flux.1).
+    
+    RULES:
+    1. TRANSLATE strictly to English if input is Korean.
+    2. VISUALS ONLY: Describe what is visible. No abstract concepts.
+    3. CAMERA ANGLES: You MUST enforce the requested camera angle and shot type.
+       - If "Close Up", describe facial features or details.
+       - If "Wide Shot", describe the environment and full figures.
+       - If "Low Angle", describe looking up at the subject.
+    4. STYLE: "Rough pencil sketch, charcoal style, loose lines, energetic, storyboard format. Black and white."
+    5. NEGATIVE: No text, no frames, no color, no photorealism.
+    
+    Output Format: Just the English prompt string.
+    `;
+
+    const userPrompt = `
+    Context: ${location}, ${time}. Mood: ${emotion?.join(', ') || 'neutral'}.
+    Director Intent: ${directorIntent || 'None'}
+    
+    SHOT SPECS:
+    - Type: ${type} (CRITICAL)
+    - Camera: ${camera} (CRITICAL)
+    - Action: ${description}
+    
+    Generate the final visual prompt.
+    `;
+
+    try {
+        const completion = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt },
+            ],
+            max_tokens: 200,
+        });
+        return completion.choices[0].message.content || description;
+    } catch (e) {
+        console.error("LLM Refinement Failed:", e);
+        return description; // Fallback to raw description
+    }
 }
 
-function getPerspective(cam: string) {
-    const c = cam.toLowerCase();
-    if (c.includes('low')) return "Draw from a worm's eye view (looking up from the ground).";
-    if (c.includes('high')) return "Draw from a bird's eye view (looking down from above).";
-    if (c.includes('pan') || c.includes('track')) return "Dynamic motion lines suggesting movement.";
-    return "Eye-level perspective.";
+async function generateSingleImage(apiKey: string, prompt: string, seed: number) {
+    const requestBody = {
+        prompt: prompt,
+        aspect_ratio: "16:9",
+        seed: seed
+    };
+
+    const response = await fetch("https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-1-schnell-fp8/text_to_image", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Accept": "image/png", // Request binary for quality/speed
+            "Authorization": `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+        const txt = await response.text();
+        throw new Error(`Fireworks API Error (${response.status}): ${txt}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+        const data = await response.json();
+        return data.image || (data.base64 && data.base64[0]) || "";
+    } else {
+        const buffer = await response.arrayBuffer();
+        const b64 = Buffer.from(buffer).toString('base64');
+        return `data:${contentType || 'image/png'};base64,${b64}`;
+    }
 }
 
 export async function POST(req: NextRequest) {
@@ -26,7 +96,7 @@ export async function POST(req: NextRequest) {
         const apiKey = process.env.FLUX_API_KEY || process.env.FIREWORKS_API_KEY;
         if (!apiKey) throw new Error("Missing FLUX_API_KEY or FIREWORKS_API_KEY");
 
-        // 1. Authenticate and rate limit
+        // 1. Authenticate
         const session = await getServerSession(authOptions);
         if (!session?.user?.email) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -36,129 +106,47 @@ export async function POST(req: NextRequest) {
         const hasCredits = await checkCredits(email, 'draft');
 
         if (!hasCredits) {
-            return NextResponse.json(
-                { error: 'Insufficient credits. Please upgrade your plan.' },
-                { status: 403 }
-            );
+            return NextResponse.json({ error: 'Insufficient credits.' }, { status: 403 });
         }
 
-        const { shotId, sceneContext, shot, seed } = await req.json();
+        const { shotId, sceneContext, shot } = await req.json();
 
         if (!shotId || !shot?.description) {
-            return NextResponse.json(
-                { error: 'Missing shotId or shot description' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Missing Data' }, { status: 400 });
         }
 
-        const { location, time, emotion, directorIntent } = sceneContext || {};
-        const { type, camera, description } = shot;
+        // 2. Refine Prompt (Korean -> English & Camera Specs)
+        const refinedPrompt = await refinePromptWithLLM(shot.description, sceneContext, shot);
+        console.log(`[Prompt Refined] ${shotId}: ${refinedPrompt}`);
 
-        const compositionNote = getComposition(type);
-        const perspectiveNote = getPerspective(camera);
+        // 3. Generate 3 Variants in Parallel
+        // Use different seeds to get variations
+        const seeds = [Math.floor(Math.random() * 10000), Math.floor(Math.random() * 10000) + 1, Math.floor(Math.random() * 10000) + 2];
 
-        // Base Prompt Construction - RAW VISUAL IDEA
-        const basePrompt = `
-Task: Quick rough sketch for a director's notebook.
-Subject: ${description}
-Context: ${location}, ${time}. Mood: ${emotion?.join(', ')}.
+        try {
+            const imagePromises = seeds.map(seed => generateSingleImage(apiKey, refinedPrompt, seed));
+            const imagesBase64 = await Promise.all(imagePromises);
 
-CONTROL SIGNAL:
-${directorIntent ? `>>> ${directorIntent.toUpperCase()} <<<` : 'None.'}
+            const resultImages = imagesBase64.map((img, idx) => ({
+                variant: String.fromCharCode(65 + idx), // A, B, C
+                imageUrl: img
+            }));
 
-VISUAL STYLE (MANDATORY):
-- LOOK LIKE: A quick pencil or charcoal drawing on a napkin or notebook.
-- LINES: Rough, loose, messy, energetic. Not perfect.
-- SHADING: Hatching or simple block shading. No smooth digital gradients.
-- NO: No polished "concept art", no "illustration", no "digital painting".
+            // 4. Consume Credits (1 Credit per Batch Action)
+            await consumeCredits(email, 'draft');
 
-CONTENT RULES (PHYSICS > AESTHETICS):
-1. ANATOMY: If the text says "awkward pose", draw it awkward. Do not fix it.
-2. CONTACT: If touching the ground, show the weight pressing down.
-3. CAMERA: Draw from the perspective described (${perspectiveNote}), but DO NOT DRAW THE CAMERA ITSELF.
+            return NextResponse.json({
+                shotId,
+                images: resultImages
+            });
 
-ABSOLUTE FORBIDDEN LIST (NEVER INCLUDE):
-- NO TEXT (Labels, dialog bubbles, captions).
-- NO FRAMES (Panel borders, film sprocket holes, slide mounts).
-- NO UI (Camera HUD, REC button, battery icon).
-- NO "CINEMATIC" LIGHTING (No lens flares, no bokeh, no dramatic rim light unless physically justified).
-- NO DRAWING TOOLS (No hands holding pencils).
-
-Just the raw visual idea. Nothing else.
-    `.trim();
-
-        // 2. Call Fireworks API
-        const response = await fetch("https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-1-schnell-fp8/text_to_image", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "image/png",
-                "Authorization": `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-                prompt: basePrompt,
-                aspect_ratio: "16:9",
-                guidance_scale: 3.5,
-                num_inference_steps: 4,
-                seed: seed !== undefined ? seed : 0
-            }),
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error("Fireworks API Error:", response.status, errorText);
-            if (errorText.includes("CONTENT_FILTERED")) {
-                return NextResponse.json({ error: "Prompt was filtered by safety policy." }, { status: 400 });
+        } catch (genError: any) {
+            console.error("Generation Failed:", genError);
+            if (genError.message.includes("content_filtered")) {
+                return NextResponse.json({ error: "Content Filtered" }, { status: 400 });
             }
-            throw new Error(`Fireworks API Failed: ${response.status}`);
+            throw genError;
         }
-
-        const contentType = response.headers.get("content-type") || "";
-        let base64Image = "";
-        let respSeed = seed || 0;
-        let respFinishReason = "SUCCESS";
-
-        if (contentType.includes("application/json")) {
-            const data = await response.json();
-            // Fireworks JSON response typically has 'image' or 'base64' (array)
-            base64Image = data.image || (data.base64 && data.base64[0]) || "";
-            respSeed = data.seed ?? respSeed;
-            respFinishReason = data.finishReason || respFinishReason;
-        } else {
-            // Binary response
-            const buffer = await response.arrayBuffer();
-            const b64 = Buffer.from(buffer).toString('base64');
-            base64Image = `data:${contentType || 'image/png'};base64,${b64}`;
-            // Extract metadata from headers if available
-            const billingProps = response.headers.get("fireworks-billing-properties");
-            if (billingProps) {
-                try {
-                    const props = JSON.parse(billingProps);
-                    // could extract steps etc here
-                } catch (e) { }
-            }
-        }
-
-        // 3. Consume Credits
-        // TODO: Log usage details (steps, seed, provider, model) to DB when table exists.
-        // console.log(`[Usage] User: ${email}, Provider: fireworks, Model: flux-1-schnell-fp8, Steps: 4`);
-
-        await consumeCredits(email, 'draft');
-
-        // Return single image wrapped in array for compatibility or as new format
-        // The plan said "Return the single image in `image` field".
-        // But the frontend adaptation plan said "Wrap the single base64 image in an array".
-        // Let's send the raw single image data and let frontend adapt, OR adapt here.
-        // User request "C. 프론트엔드 연결 수정" implies frontend change.
-        // "응답은 JSON으로: { image, id, seed, steps, finishReason }"
-
-        return NextResponse.json({
-            shotId,
-            image: base64Image,
-            seed: respSeed,
-            steps: 4,
-            finishReason: respFinishReason
-        });
 
     } catch (error: any) {
         console.error('Storyboard generation error:', error);
