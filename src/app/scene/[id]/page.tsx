@@ -28,6 +28,7 @@ export default function SceneDetailPage() {
     const router = useRouter();
     const { scenes, storyboardCache, updateStoryboardCache, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects } = useScreenplay();
     const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
+    const [generatingCount, setGeneratingCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [isExportingAll, setIsExportingAll] = useState(false);
@@ -37,13 +38,13 @@ export default function SceneDetailPage() {
     const projectTitle = currentProject?.title || "CineCraft Project";
 
     const handleExportPDF = async () => {
-        const sceneId = decodeURIComponent(params.id as string);
-        const scene = scenes.find(s => s.id === sceneId);
-        if (!scene) return;
+        const sceneIdParam = decodeURIComponent(params.id as string);
+        const targetScene = scenes.find(s => s.id === sceneIdParam);
+        if (!targetScene) return;
 
         setIsExporting(true);
         try {
-            await exportStoryboardPDF(scene, projectTitle);
+            await exportStoryboardPDF(targetScene, projectTitle);
         } catch (error) {
             console.error("PDF Export failed:", error);
             alert("Failed to export PDF.");
@@ -55,7 +56,6 @@ export default function SceneDetailPage() {
     const handleExportProjectPDF = async () => {
         setIsExportingAll(true);
         try {
-            // Pass ALL scenes
             await exportStoryboardPDF(scenes, projectTitle);
         } catch (e) {
             console.error("Project Export failed", e);
@@ -141,7 +141,7 @@ export default function SceneDetailPage() {
 
                 updateSceneShots?.(scene.id, newShots);
 
-                // Auto-generate visuals only
+                // Auto-generate visuals
                 modifiedShotIds.forEach(id => {
                     const shot = newShots.find(s => s.id === id);
                     if (shot) {
@@ -158,7 +158,7 @@ export default function SceneDetailPage() {
         }
     };
 
-    // Redirect if no scene found
+    // Redirect or Search State
     if (!scene && scenes.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-screen bg-[#0b0f17] text-[#94a3b8] gap-4">
@@ -180,17 +180,7 @@ export default function SceneDetailPage() {
                 <Loader2 className="animate-spin w-8 h-8 text-[#ff365c]" />
                 <div className="text-center space-y-4 max-w-lg">
                     <h2 className="text-xl font-bold text-white">Searching for Scene...</h2>
-                    <p className="text-[#94a3b8] text-sm font-mono">
-                        Target ID: <span className="text-[#ff365c]">{sceneId}</span>
-                    </p>
-                    <div className="text-xs text-[#52525b] border-t border-[#1f2937] pt-4 mt-4">
-                        <p className="mb-2 font-bold">Debug Info - Available Scenes:</p>
-                        <div className="flex flex-wrap gap-2 justify-center">
-                            {scenes.map(s => (
-                                <span key={s.id} className="bg-[#1f2937] px-2 py-1 rounded text-xs text-[#94a3b8]">{s.id}</span>
-                            ))}
-                        </div>
-                    </div>
+                    <p className="text-[#94a3b8] text-sm font-mono">Target ID: <span className="text-[#ff365c]">{sceneId}</span></p>
                 </div>
                 <button
                     onClick={() => router.push('/')}
@@ -203,16 +193,17 @@ export default function SceneDetailPage() {
     }
 
     const handleGenerateStoryboard = async (shot: any, forceRegenerate = false) => {
-        if (generatingShotId) return;
+        if (generatingShotId === shot.id && !forceRegenerate) return;
 
         // Extract script context for continuity
-        const scriptContext = scene.script_blocks
-            ?.filter(b => b.type === 'action' || b.type === 'dialogue')
-            .map(b => b.type === 'dialogue' ? `${b.speaker}: ${b.text}` : b.text)
+        const scriptContext = (scene?.script_blocks || [])
+            .filter((b: { type: string; speaker?: string; text: string }) => b.type === 'action' || b.type === 'dialogue')
+            .map((b: { type: string; speaker?: string; text: string }) => b.type === 'dialogue' ? `${b.speaker}: ${b.text}` : b.text)
             .slice(0, 5) // Take first 5 blocks to establish scene context
-            .join('\n') || "";
+            .join('\n');
 
         setGeneratingShotId(shot.id);
+        setGeneratingCount(prev => prev + 1); // Start tracking
         try {
             const response = await fetch('/api/storyboard', {
                 method: 'POST',
@@ -234,17 +225,37 @@ export default function SceneDetailPage() {
                 })
             });
 
-            if (!response.ok) throw new Error('Generation failed');
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                if (errData.error && errData.error.includes("filtered")) {
+                    alert("프롬프트가 정책에 의해 차단되었거나 생성에 실패했습니다. 문장을 바꿔 다시 시도해주세요.");
+                    throw new Error("Content Filtered");
+                }
+                throw new Error('Generation failed');
+            }
 
             const data = await response.json();
-            if (data.storyboards) {
-                updateStoryboardCache(shot.id, data.storyboards);
+
+            // Adapter for new single-image format to existing array-based cache
+            if (data.image) {
+                // Wrap single image as 'A' variant
+                const storyboardArray = [{
+                    variant: 'A',
+                    imageUrl: data.image
+                }];
+                updateStoryboardCache(shot.id, storyboardArray);
+
+                // Select it immediately since it's the only one
+                // (Optional: if we want to auto-select the new image)
+                // selectShotImage?.(scene.id, shot.id, data.image);
             }
+
         } catch (err) {
             console.error(err);
             alert("Failed to generate storyboard.");
         } finally {
             setGeneratingShotId(null);
+            setGeneratingCount(prev => Math.max(0, prev - 1)); // End tracking
         }
     };
 
@@ -330,7 +341,7 @@ export default function SceneDetailPage() {
                                     Original Script Context
                                 </div>
                                 <div className="space-y-6 font-serif text-[#cbd5f5] leading-loose">
-                                    {scene.script_blocks?.map((block, idx) => {
+                                    {scene.script_blocks?.map((block: { type: string; text: string; speaker?: string }, idx: number) => {
                                         if (block.type === 'slugline') {
                                             return (
                                                 <div key={idx} className="font-bold text-white uppercase tracking-widest text-sm border-b border-[#334155] pb-2 mb-4 mt-8">
@@ -364,8 +375,16 @@ export default function SceneDetailPage() {
                                     <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
                                         <MessageSquare className="w-3 h-3" /> AI Assistant Director
                                     </div>
-                                    <div className="text-[8px] text-[#52525b] uppercase font-bold px-2 py-0.5 border border-[#1f2937] rounded">
-                                        Beta
+                                    <div className="flex items-center gap-2">
+                                        {generatingCount > 0 && (
+                                            <div className="flex items-center gap-2 px-2 py-0.5 bg-[#ff365c]/10 rounded border border-[#ff365c]/20">
+                                                <Loader2 className="w-3 h-3 animate-spin text-[#ff365c]" />
+                                                <span className="text-[8px] font-bold text-[#ff365c] uppercase tracking-widest">Generating {generatingCount} Shot{generatingCount > 1 ? 's' : ''}...</span>
+                                            </div>
+                                        )}
+                                        <div className="text-[8px] text-[#52525b] uppercase font-bold px-2 py-0.5 border border-[#1f2937] rounded">
+                                            Beta
+                                        </div>
                                     </div>
                                 </div>
 

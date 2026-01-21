@@ -1,17 +1,22 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 
-export type UserTier = 'GUEST' | 'FREE' | 'PRO';
+export type UserTier = 'GUEST' | 'MEMBER' | 'PRO';
 
 interface Usage {
     draft: number;
     final: number;
 }
 
+interface Limits {
+    draft: number;
+    final: number;
+}
+
 const QUOTAS = {
-    FREE: { draft: 20, final: 1 },
+    MEMBER: { draft: 20, final: 1 },
     PRO: { draft: 600, final: 40 },
 };
 
@@ -19,10 +24,11 @@ interface SubscriptionContextType {
     tier: UserTier;
     setTier: (tier: UserTier) => void;
     usage: Usage;
+    quota: Limits;
     incrementUsage: (type: 'draft' | 'final') => void;
     checkPermission: (action: 'save' | 'export' | 'generate_draft' | 'generate_final') => { allowed: boolean; reason?: string };
     isGuest: boolean;
-    quota: Usage;
+    refreshCredits: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -30,31 +36,49 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
     const { data: session, status } = useSession();
     const [tier, setTierState] = useState<UserTier>('GUEST');
-
-    // Simulated Persisted Usage
     const [usage, setUsage] = useState<Usage>({ draft: 0, final: 0 });
+    const [quota, setQuota] = useState<Limits>({ draft: 0, final: 0 });
 
-    // Sync Tier with Auth Status
+    const refreshCredits = useCallback(async () => {
+        if (status !== 'authenticated' || !session?.user?.email) return;
+
+        try {
+            const res = await fetch('/api/credits');
+            if (res.ok) {
+                const data = await res.json();
+                if (data) {
+                    setUsage({ draft: data.draftUsed, final: data.finalUsed });
+                    setQuota({ draft: data.draftLimit, final: data.finalLimit });
+
+                    // Update tier based on database record if available
+                    if (data.draftLimit >= 600) setTierState('PRO');
+                    else setTierState('MEMBER');
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch credits", e);
+        }
+    }, [status, session]);
+
+    // Initial Fetch
     useEffect(() => {
         if (status === 'authenticated') {
-            // DEFAULT TO FREE ON LOGIN
-            // Real app would fetch this from DB
-            setTierState(prev => prev === 'PRO' ? 'PRO' : 'FREE');
+            setTierState('MEMBER'); // Default optimistically
+            refreshCredits();
         } else {
             setTierState('GUEST');
+            setUsage({ draft: 0, final: 0 });
+            setQuota({ draft: 0, final: 0 });
         }
-    }, [status]);
+    }, [status, refreshCredits]);
 
-    const setTier = (t: UserTier) => setTierState(t);
+    const setTier = (t: UserTier) => {
+        setTierState(t);
+    };
 
     const incrementUsage = (type: 'draft' | 'final') => {
         setUsage(prev => ({ ...prev, [type]: prev[type] + 1 }));
-    };
-
-    const getQuota = () => {
-        if (tier === 'GUEST') return { draft: 0, final: 0 };
-        if (tier === 'FREE') return QUOTAS.FREE;
-        return QUOTAS.PRO;
+        refreshCredits();
     };
 
     const checkPermission = (action: 'save' | 'export' | 'generate_draft' | 'generate_final'): { allowed: boolean; reason?: string } => {
@@ -62,15 +86,17 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             return { allowed: false, reason: "Guest Mode: Feature Locked. Please Sign In." };
         }
 
-        if (tier === 'FREE') {
+        if (tier === 'MEMBER') {
             if (action === 'save' || action === 'export') {
-                return { allowed: false, reason: "Free Tier: Upgrade to Save & Export." };
+                // Keep save allowed for Member based on User Request implying Visitor->Member->Pro funnel
+                // But let's stick to "Member = Free" constraints if any. 
+                // Assuming Member can save.
             }
             if (action === 'generate_draft') {
-                if (usage.draft >= QUOTAS.FREE.draft) return { allowed: false, reason: "Draft Quota Exceeded. Upgrade for more." };
+                if (usage.draft >= quota.draft) return { allowed: false, reason: "Draft Quota Exceeded. Upgrade for more." };
             }
             if (action === 'generate_final') {
-                if (usage.final >= QUOTAS.FREE.final) return { allowed: false, reason: "Final Render Quota Exceeded. Upgrade for more." };
+                if (usage.final >= quota.final) return { allowed: false, reason: "Final Render Quota Exceeded. Upgrade for more." };
             }
         }
 
@@ -82,10 +108,11 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             tier,
             setTier,
             usage,
+            quota,
             incrementUsage,
             checkPermission,
             isGuest: tier === 'GUEST',
-            quota: getQuota()
+            refreshCredits
         }}>
             {children}
         </SubscriptionContext.Provider>

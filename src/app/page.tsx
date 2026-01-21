@@ -29,7 +29,7 @@ import { ShootingScheduleView } from '@/components/documents/ShootingScheduleVie
 import { CallSheetData, ShootingScheduleData } from '@/types/production';
 import { LoginView } from '@/components/LoginView';
 import { useSubscription } from '@/context/SubscriptionContext';
-import { UpgradeModal } from '@/components/UpgradeModal';
+import UpgradeIntentModal from '@/components/subscription/UpgradeIntentModal';
 import { Lock } from 'lucide-react';
 
 export default function CineCraftWorkspace() {
@@ -218,7 +218,7 @@ export default function CineCraftWorkspace() {
   // DEV TOOL: Toggle Tier in UI (Invisible in Prod ideally, but useful here)
   React.useEffect(() => {
     // @ts-ignore
-    window.toggleTier = () => setTier(tier === 'FREE' ? 'PRO' : 'FREE');
+    window.toggleTier = () => setTier(tier === 'MEMBER' ? 'PRO' : 'MEMBER');
   }, [tier]);
 
   if (status === "loading") {
@@ -355,14 +355,10 @@ export default function CineCraftWorkspace() {
 
       <AnimatePresence>
         {upgradeModalOpen && (
-          <UpgradeModal
-            currentTier={tier as 'FREE' | 'GUEST'}
-            onUiClose={() => setUpgradeModalOpen(false)}
-            onUpgrade={() => {
-              setTier('PRO');
-              setUpgradeModalOpen(false);
-              alert("Welcome to Pro! (Simulation)");
-            }}
+          <UpgradeIntentModal
+            isOpen={upgradeModalOpen}
+            onClose={() => setUpgradeModalOpen(false)}
+            currentDraftUsage={usage.draft}
           />
         )}
       </AnimatePresence>
@@ -529,7 +525,7 @@ export default function CineCraftWorkspace() {
         </div>
 
         {/* Usage Stats (Tier Based) */}
-        {(tier === 'FREE' || tier === 'PRO') && (
+        {(tier === 'MEMBER' || tier === 'PRO') && (
           <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937] space-y-3">
             <div className="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider">
               <span>Monthly Credits</span>
@@ -563,7 +559,7 @@ export default function CineCraftWorkspace() {
               </div>
             </div>
 
-            {tier === 'FREE' && (
+            {tier === 'MEMBER' && (
               <button
                 onClick={() => setUpgradeModalOpen(true)}
                 className="w-full mt-2 bg-gradient-to-r from-[#ff365c] to-[#ff8f00] text-white text-[10px] font-black uppercase tracking-widest py-2 rounded-lg hover:shadow-lg hover:shadow-[#ff365c]/20 transition-all active:scale-95"
@@ -591,7 +587,7 @@ export default function CineCraftWorkspace() {
               disabled={isSaving}
               className="w-full bg-[#1e293b] border border-[#334155] rounded-xl p-3 flex items-center justify-center gap-2 hover:bg-[#334155] transition-all disabled:opacity-50 relative overflow-hidden"
             >
-              {isGuest || tier === 'FREE' ? <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10"><Lock className="w-4 h-4 text-white/50" /></div> : null}
+              {isGuest || tier === 'MEMBER' ? <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10"><Lock className="w-4 h-4 text-white/50" /></div> : null}
               {isSaving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin text-[#94a3b8]" />
@@ -802,52 +798,19 @@ export default function CineCraftWorkspace() {
                               </div>
                             )}
                             {/* Placeholder for unselected but existing suggestions if none selected */}
-                            {scene.shots.filter(s => s.selectedImageUrl).length === 0 && scene.shots.length > 0 && (
-                              <span className="text-[9px] text-[#52525b] ml-auto self-center">{scene.shots.length} shots planned</span>
-                            )}
                           </div>
                         </div>
 
                       </div>
                     </div>
                   </Link>
-
-                  {idx < scenes.length - 1 && (
-                    <div className="flex-shrink-0 flex flex-col items-center gap-2 opacity-20">
-                      <ChevronRight className="w-12 h-12 text-[#ff365c]" />
-                      <span className="text-[8px] font-black tracking-[0.4em] uppercase">Connect</span>
-                    </div>
-                  )}
                 </React.Fragment>
               ))}
             </div>
           )}
         </div>
-      </main >
 
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 0px;
-          height: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #1f2937;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #ff365c;
-        }
-      `}</style>
-      {/* Dev Tier Switcher - Repositioned to Bottom Right */}
-      <div
-        className="fixed bottom-4 right-4 z-[9999] text-[10px] font-mono text-[#475569] cursor-pointer hover:text-white bg-black/40 px-2 py-1 rounded border border-[#1e293b] backdrop-blur-sm transition-all"
-        onClick={() => setTier(tier === 'GUEST' ? 'FREE' : tier === 'FREE' ? 'PRO' : 'GUEST')}
-      >
-        DEV: [{tier}]
-      </div>
-    </div >
+      </main>
+    </div>
   );
 }

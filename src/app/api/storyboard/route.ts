@@ -1,14 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { checkCredits, consumeCredits } from "@/lib/credits";
 
+// Helper to translate film terms to drawing instructions
+function getComposition(type: string) {
+    const t = type.toLowerCase();
+    if (t.includes('close')) return "Focus tightly on the face or main object. Crop out the background.";
+    if (t.includes('medium')) return "Draw the character from waist up. Show some background.";
+    if (t.includes('wide') || t.includes('long')) return "Draw the full figure and the surrounding environment. Show where they are.";
+    if (t.includes('extreme close')) return "Macro view. Zoom in on a specific detail (eye, hand, object).";
+    return "Standard composition.";
+}
 
+function getPerspective(cam: string) {
+    const c = cam.toLowerCase();
+    if (c.includes('low')) return "Draw from a worm's eye view (looking up from the ground).";
+    if (c.includes('high')) return "Draw from a bird's eye view (looking down from above).";
+    if (c.includes('pan') || c.includes('track')) return "Dynamic motion lines suggesting movement.";
+    return "Eye-level perspective.";
+}
 
 export async function POST(req: NextRequest) {
     try {
-        if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const apiKey = process.env.FLUX_API_KEY || process.env.FIREWORKS_API_KEY;
+        if (!apiKey) throw new Error("Missing FLUX_API_KEY or FIREWORKS_API_KEY");
 
-        const { shotId, sceneContext, shot } = await req.json();
+        // 1. Authenticate and rate limit
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.email) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const email = session.user.email;
+        const hasCredits = await checkCredits(email, 'draft');
+
+        if (!hasCredits) {
+            return NextResponse.json(
+                { error: 'Insufficient credits. Please upgrade your plan.' },
+                { status: 403 }
+            );
+        }
+
+        const { shotId, sceneContext, shot, seed } = await req.json();
 
         if (!shotId || !shot?.description) {
             return NextResponse.json(
@@ -17,31 +51,13 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { location, time, emotion, directorIntent, contextSummary } = sceneContext || {};
+        const { location, time, emotion, directorIntent } = sceneContext || {};
         const { type, camera, description } = shot;
-
-        // Helper to translate film terms to drawing instructions
-        const getComposition = (type: string) => {
-            const t = type.toLowerCase();
-            if (t.includes('close')) return "Focus tightly on the face or main object. Crop out the background.";
-            if (t.includes('medium')) return "Draw the character from waist up. Show some background.";
-            if (t.includes('wide') || t.includes('long')) return "Draw the full figure and the surrounding environment. Show where they are.";
-            if (t.includes('extreme close')) return "Macro view. Zoom in on a specific detail (eye, hand, object).";
-            return "Standard composition.";
-        };
-
-        const getPerspective = (cam: string) => {
-            const c = cam.toLowerCase();
-            if (c.includes('low')) return "Draw from a worm's eye view (looking up from the ground).";
-            if (c.includes('high')) return "Draw from a bird's eye view (looking down from above).";
-            if (c.includes('pan') || c.includes('track')) return "Dynamic motion lines suggesting movement.";
-            return "Eye-level perspective.";
-        };
 
         const compositionNote = getComposition(type);
         const perspectiveNote = getPerspective(camera);
 
-        // Base Prompt Construction - FINAL CORE INSTRUCTION (SKETCH ONLY)
+        // Base Prompt Construction - RAW VISUAL IDEA
         const basePrompt = `
 Task: Quick rough sketch for a director's notebook.
 Subject: ${description}
@@ -71,43 +87,83 @@ ABSOLUTE FORBIDDEN LIST (NEVER INCLUDE):
 Just the raw visual idea. Nothing else.
     `.trim();
 
-        // Generate 3 variations in parallel
-        const generateImage = async () => {
-            const response = await openai.images.generate({
-                model: "dall-e-3",
+        // 2. Call Fireworks API
+        const response = await fetch("https://api.fireworks.ai/inference/v1/workflows/accounts/fireworks/models/flux-1-schnell-fp8/text_to_image", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "image/png",
+                "Authorization": `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
                 prompt: basePrompt,
-                n: 1,
-                size: "1024x1024",
-                response_format: "url",
-            });
-            return response.data?.[0]?.url;
-        };
+                aspect_ratio: "16:9",
+                guidance_scale: 3.5,
+                num_inference_steps: 4,
+                seed: seed !== undefined ? seed : 0
+            }),
+        });
 
-        const results = await Promise.allSettled([
-            generateImage(),
-            generateImage(),
-            generateImage()
-        ]);
-
-        const storyboards = results
-            .map((res, index) => {
-                if (res.status === 'fulfilled' && res.value) {
-                    return { variant: String.fromCharCode(65 + index), imageUrl: res.value };
-                }
-                return null;
-            })
-            .filter(item => item !== null);
-
-        if (storyboards.length === 0) {
-            throw new Error("Failed to generate any images");
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("Fireworks API Error:", response.status, errorText);
+            if (errorText.includes("CONTENT_FILTERED")) {
+                return NextResponse.json({ error: "Prompt was filtered by safety policy." }, { status: 400 });
+            }
+            throw new Error(`Fireworks API Failed: ${response.status}`);
         }
 
-        return NextResponse.json({ shotId, storyboards });
+        const contentType = response.headers.get("content-type") || "";
+        let base64Image = "";
+        let respSeed = seed || 0;
+        let respFinishReason = "SUCCESS";
 
-    } catch (error) {
+        if (contentType.includes("application/json")) {
+            const data = await response.json();
+            // Fireworks JSON response typically has 'image' or 'base64' (array)
+            base64Image = data.image || (data.base64 && data.base64[0]) || "";
+            respSeed = data.seed ?? respSeed;
+            respFinishReason = data.finishReason || respFinishReason;
+        } else {
+            // Binary response
+            const buffer = await response.arrayBuffer();
+            const b64 = Buffer.from(buffer).toString('base64');
+            base64Image = `data:${contentType || 'image/png'};base64,${b64}`;
+            // Extract metadata from headers if available
+            const billingProps = response.headers.get("fireworks-billing-properties");
+            if (billingProps) {
+                try {
+                    const props = JSON.parse(billingProps);
+                    // could extract steps etc here
+                } catch (e) { }
+            }
+        }
+
+        // 3. Consume Credits
+        // TODO: Log usage details (steps, seed, provider, model) to DB when table exists.
+        // console.log(`[Usage] User: ${email}, Provider: fireworks, Model: flux-1-schnell-fp8, Steps: 4`);
+
+        await consumeCredits(email, 'draft');
+
+        // Return single image wrapped in array for compatibility or as new format
+        // The plan said "Return the single image in `image` field".
+        // But the frontend adaptation plan said "Wrap the single base64 image in an array".
+        // Let's send the raw single image data and let frontend adapt, OR adapt here.
+        // User request "C. 프론트엔드 연결 수정" implies frontend change.
+        // "응답은 JSON으로: { image, id, seed, steps, finishReason }"
+
+        return NextResponse.json({
+            shotId,
+            image: base64Image,
+            seed: respSeed,
+            steps: 4,
+            finishReason: respFinishReason
+        });
+
+    } catch (error: any) {
         console.error('Storyboard generation error:', error);
         return NextResponse.json(
-            { error: 'Failed to generate storyboards' },
+            { error: error.message || 'Failed to generate storyboards' },
             { status: 500 }
         );
     }

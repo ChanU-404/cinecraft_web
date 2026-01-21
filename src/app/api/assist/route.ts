@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-
-
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const SYSTEM_PROMPT = `
 You are a Screenplay Visualization Assistant. Your role is to help a director refine their shot list and storyboard plan.
@@ -36,6 +36,12 @@ export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) throw new Error("Missing OPENAI_API_KEY");
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    // 1. Authenticate
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 });
+    }
 
     const { messages, scene, shots } = await req.json();
 

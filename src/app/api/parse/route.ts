@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
-
-
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const SYSTEM_PROMPT = `
 You are an expert Korean Assistant Director (AD) and Script Supervisor.
@@ -66,6 +66,12 @@ export async function POST(req: NextRequest) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
+    // 1. Authenticate
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 });
+    }
+
     const { scriptText } = await req.json();
 
     if (!scriptText || typeof scriptText !== "string") {
@@ -75,7 +81,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("Starting screenplay parse. Text length:", scriptText.length);
+    console.log("Starting screenplay parse. Text length:", scriptText.length, "User:", session.user.email);
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",

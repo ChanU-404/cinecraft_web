@@ -1,1 +1,291 @@
-[]
+[
+  {
+    "id": "0ed8909e-93fd-46c4-97d0-ec2ac7d249f8",
+    "title": "Project: EXT. 공원...",
+    "lastModified": 1768992856111,
+    "scenes": []
+  },
+  {
+    "id": "e84b2ef4-328b-4347-aa11-e5590a885e08",
+    "title": "Project: INT. 피자 가게...",
+    "lastModified": 1768990380150,
+    "scenes": [
+      {
+        "id": "S_1",
+        "location": "INT. 피자 가게",
+        "time": "낮",
+        "summary": "외계인이 피자 가게에서 배달 주문을 처리하며 자신의 정체와 파인애플 피자의 기원에 대해 생각한다.",
+        "script_blocks": [
+          {
+            "type": "slugline",
+            "text": "S#1. 피자 가게. 실내. 낮."
+          },
+          {
+            "type": "action",
+            "text": "외계인이 피자 가게 안에서 일하며 배달 주문을 처리한다. 피자가게에는 피자를 만드는 소리와 주문 알림 소리가 울린다."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "외계인 (NA)",
+            "text": "나는 외계인이다. '배달의 민족 주문!' 하며 울리는 배달 접수 알림 소리."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "외계인 (NA)",
+            "text": "62년 전부터 피자를 판매했던..."
+          }
+        ],
+        "shots": [
+          {
+            "id": "1.1",
+            "type": "Close-Up (CU)",
+            "camera": "Static",
+            "description": "배달 접수 알림이 울리는 직원의 표정."
+          },
+          {
+            "id": "1.2",
+            "type": "Wide Shot (WS)",
+            "camera": "Pan",
+            "description": "피자 가게 내부의 소란한 분위기. 직원이 일을 처리 중이다.",
+            "selectedImageUrl": "https://oaidalleapiprodscus.blob.core.windows.net/private/org-LnUrAi0VZq0gasBxxZj0ekYM/user-qCr7mUWG8xzpR5FJ45uz3Onr/img-sk0qBryAXr2r8gpIaWSdfjxs.png?st=2026-01-21T09%3A12%3A35Z&se=2026-01-21T11%3A12%3A35Z&sp=r&sv=2024-08-04&sr=b&rscd=inline&rsct=image/png&skoid=b2c0e1c0-cf97-4e19-8986-8073905d5723&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-01-21T06%3A03%3A11Z&ske=2026-01-22T06%3A03%3A11Z&sks=b&skv=2024-08-04&sig=tLyhhdMYDli7WMO19hT8nAPquQcamKbHArEx5gZgNm0%3D"
+          }
+        ]
+      },
+      {
+        "id": "S_2",
+        "location": "INT. 피자 가게",
+        "time": "낮",
+        "summary": "외계인이 파인애플 피자의 기원에 대해 독백한다. 한 주문이 들어오고 외계인은 피자를 포장해 고객에게 건네준다.",
+        "script_blocks": [
+          {
+            "type": "slugline",
+            "text": "S#2. 피자 가게. 실내. 낮."
+          },
+          {
+            "type": "action",
+            "text": "카운터에 외계인이 앉아 있다."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "외계인 (NA)",
+            "text": "여러분은 파인애플 피자를 좋아하는가? 왜, 세상엔 그런 음식들이 있지 않나."
+          },
+          {
+            "type": "action",
+            "text": "매장을 청소하는 외계인의 모습."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "손님 1",
+            "text": "저 하와이안 피자 라지 사이즈로 한 판이요!"
+          },
+          {
+            "type": "action",
+            "text": "외계인은 주문을 처리하고 웃으며 고개를 끄덕인다."
+          },
+          {
+            "type": "action",
+            "text": "식탁에 앉아 피자를 먹는 사람들의 모습. 외계인이 기다리던 손님에게 피자 한 박스를 건넨다."
+          }
+        ],
+        "shots": [
+          {
+            "id": "2.1",
+            "type": "Medium Shot (MS)",
+            "camera": "Static",
+            "description": "카운터에 앉아 있는 외계인의 모습."
+          },
+          {
+            "id": "2.2",
+            "type": "Over-the-Shoulder Shot",
+            "camera": "Pan",
+            "description": "외계인이 피자 포장을 마친 후, 손님에게 건네는 장면."
+          }
+        ]
+      },
+      {
+        "id": "S_3",
+        "location": "INT. 피자 가게",
+        "time": "낮",
+        "summary": "손님이 자신을 외계인이라고 선언하며 외계인과의 대화가 시작된다.",
+        "script_blocks": [
+          {
+            "type": "slugline",
+            "text": "S#3. 피자 가게. 실내. 낮."
+          },
+          {
+            "type": "action",
+            "text": "손님이 카운터 앞에 서서 메뉴판을 보고 있다."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "손님 2",
+            "text": "저는 외계인 이요."
+          },
+          {
+            "type": "action",
+            "text": "외계인은 손님을 쳐다본다."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "외계인",
+            "text": "외계인 하나 나왔습니다."
+          },
+          {
+            "type": "action",
+            "text": "외계인은 손님 앞에 피자 한 판을 내려 놓는다."
+          }
+        ],
+        "shots": [
+          {
+            "id": "3.1",
+            "type": "Close-Up (CU)",
+            "camera": "Static",
+            "description": "외계인이 피자를 손님에게 건넨 후의 표정."
+          },
+          {
+            "id": "3.2",
+            "type": "Two-Shot",
+            "camera": "Static",
+            "description": "외계인과 손님이 대화를 나누는 장면."
+          }
+        ]
+      },
+      {
+        "id": "S_4",
+        "location": "INT. 피자 가게",
+        "time": "낮",
+        "summary": "파인애플 피자에 대해 서로 대화하며 서로의 정체를 확인하게 된다.",
+        "script_blocks": [
+          {
+            "type": "slugline",
+            "text": "S#4. 피자 가게. 실내. 낮."
+          },
+          {
+            "type": "action",
+            "text": "외계인과 손님이 마주 앉아 이야기를 나눈다."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "손님",
+            "text": "파인애플 피자라니, 누가 봐도 이거 딱 외계인이 할 발상이잖아요!"
+          },
+          {
+            "type": "dialogue",
+            "speaker": "외계인 (NA)",
+            "text": "이런 친절한 인간이라면, 상으로 정말 파인애플 피자 미디엄 사이즈와 라지를 모두 줘도 될지도 모른다."
+          }
+        ],
+        "shots": [
+          {
+            "id": "4.1",
+            "type": "Over-the-Shoulder Shot",
+            "camera": "Static",
+            "description": "손님이 외계인에게 내밀린 손을 잡는 장면."
+          },
+          {
+            "id": "4.2",
+            "type": "Close-Up (CU)",
+            "camera": "Dolly In",
+            "description": "서로 웃는 외계인과 손님의 얼굴."
+          }
+        ]
+      },
+      {
+        "id": "S_5",
+        "location": "INT. 피자 가게",
+        "time": "낮",
+        "summary": "서로의 정체를 알아본 후, 외계인과 손님이 친구가 되기로 한다.",
+        "script_blocks": [
+          {
+            "type": "slugline",
+            "text": "S#5. 피자 가게. 실내. 낮."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "손님",
+            "text": "나는 민트 초코를 만들었어요. 내가 당신을 알아볼 수 있었던 이유는 그거예요. 나랑 비슷하니까!"
+          },
+          {
+            "type": "dialogue",
+            "speaker": "외계인",
+            "text": "난 피자를 좋아해요. 태어날 때부터 피자를 좋아했죠. 그래서 지구로 왔어요."
+          },
+          {
+            "type": "dialogue",
+            "speaker": "손님",
+            "text": "어때요, 우리 친구 할까요?"
+          },
+          {
+            "type": "action",
+            "text": "손님이 웃으며 손을 내민다."
+          },
+          {
+            "type": "action",
+            "text": "외계인은 잠시 그 손을 쳐다본다. 곧 외계인은 웃으며 손을 맞잡는다."
+          }
+        ],
+        "shots": [
+          {
+            "id": "5.1",
+            "type": "Wide Shot (WS)",
+            "camera": "Static",
+            "description": "손을 맞잡고 서로 웃는 외계인과 손님의 모습."
+          }
+        ]
+      },
+      {
+        "id": "S_6",
+        "location": "EXT. 피자 가게",
+        "time": "낮",
+        "summary": "외계인과 손님이 함께 피자 가게를 운영하며 새로운 메뉴를 출시한다.",
+        "script_blocks": [
+          {
+            "type": "slugline",
+            "text": "S#6. 피자 가게. 실외. 낮."
+          },
+          {
+            "type": "action",
+            "text": "외계인과 손님이 함께 피자를 만들어 파는 가게. 통유리창으로 바쁘게 움직이는 모습이 보인다."
+          },
+          {
+            "type": "action",
+            "text": "유리창 문에 '민트 초코 파인애플 피자 신메뉴 전격 출시!' 포스터가 붙어 있다."
+          }
+        ],
+        "shots": [
+          {
+            "id": "6.1",
+            "type": "Establishing Shot",
+            "camera": "Static",
+            "description": "피자 가게 전경과 유리창에 붙은 신메뉴 포스터."
+          },
+          {
+            "id": "6.2",
+            "type": "Medium Shot (MS)",
+            "camera": "Pan",
+            "description": "통유리창 너머로 보이는 바쁘게 움직이는 외계인과 손님의 모습."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "5d9fd595-12bd-4b80-98eb-603269edaf19",
+    "title": "Project: 카페 or CCL 스튜디오 or 미관 스튜디오...",
+    "lastModified": 1768995012812,
+    "scenes": []
+  },
+  {
+    "id": "d6ac275b-1910-439b-9299-38e2c1c58989",
+    "title": "Project: INT. 식탁...",
+    "lastModified": 1768995665291,
+    "scenes": []
+  },
+  {
+    "id": "87478327-5444-411b-ba87-5e6f5fd95d21",
+    "title": "Project: 공원 안, 벤치...",
+    "lastModified": 1768995867190,
+    "scenes": []
+  }
+]

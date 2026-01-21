@@ -72,25 +72,7 @@ export function LoginView({ onGuestEnter }: LoginViewProps) {
                         Continue with Google
                     </button>
 
-                    <div className="relative">
-                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#334155]"></div></div>
-                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-[#111827] px-2 text-[#64748b]">Or Demo Access</span></div>
-                    </div>
 
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault();
-                            signIn("credentials", { username: "demo", password: "demo" });
-                        }}
-                        className="flex flex-col gap-4"
-                    >
-                        <button
-                            type="submit"
-                            className="w-full bg-[#1f2937] hover:bg-[#334155] border border-[#334155] text-white font-bold py-4 rounded-xl transition-all"
-                        >
-                            Quick Demo Login
-                        </button>
-                    </form>
 
                     <button
                         onClick={onGuestEnter}
