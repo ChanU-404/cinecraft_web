@@ -139,7 +139,11 @@ export async function POST(req: NextRequest) {
             }));
 
             // 4. Consume Credits (1 Credit per Batch Action)
-            await consumeCredits(email, 'draft');
+            try {
+                await consumeCredits(email, 'draft');
+            } catch (e) {
+                console.warn("Credit Consumption Failed (DB Error), ignoring.", e);
+            }
 
             return NextResponse.json({
                 shotId,
