@@ -37,7 +37,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     const { data: session, status } = useSession();
     const [tier, setTierState] = useState<UserTier>('GUEST');
     const [usage, setUsage] = useState<Usage>({ draft: 0, final: 0 });
-    const [quota, setQuota] = useState<Limits>({ draft: 0, final: 0 });
+    const [quota, setQuota] = useState<Limits>({ draft: 40, final: 0 }); // Default to MEMBER quota (40)
 
     const refreshCredits = useCallback(async () => {
         if (status !== 'authenticated' || !session?.user?.email) return;
@@ -67,8 +67,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
             refreshCredits();
         } else {
             setTierState('GUEST');
-            setUsage({ draft: 0, final: 0 });
-            setQuota({ draft: 0, final: 0 });
+            // Don't reset quota to 0/0 for guests, maybe show 0/0 or 0/40 is fine
+            // But let's keep guest as 0 for now, but for authenticated defaults above we handled it.
         }
     }, [status, refreshCredits]);
 
@@ -107,8 +107,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         <SubscriptionContext.Provider value={{
             tier,
             setTier,
-            usage,
-            quota,
+            usage: { draft: usage.draft, final: 0 }, // We only care about draft (generic images) now
+            quota: { draft: quota.draft, final: 0 },
             incrementUsage,
             checkPermission,
             isGuest: tier === 'GUEST',

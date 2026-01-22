@@ -42,6 +42,11 @@ export async function getCredits(email: string) {
         }
     });
 
+    // Fallback if DB returns partial data (rare but leads to 0/0)
+    if (!credits.draftLimit) {
+        return { ...credits, draftLimit: 40 };
+    }
+
     return credits;
 }
 
