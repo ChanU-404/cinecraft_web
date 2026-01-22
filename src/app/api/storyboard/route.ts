@@ -103,7 +103,13 @@ export async function POST(req: NextRequest) {
         }
 
         const email = session.user.email;
-        const hasCredits = await checkCredits(email, 'draft');
+        let hasCredits = true;
+        try {
+            hasCredits = await checkCredits(email, 'draft');
+        } catch (e) {
+            console.warn("Credit Check Failed (DB Error), skipping check to allow generation.", e);
+            hasCredits = true; // Fallback to allow generation if DB is down
+        }
 
         if (!hasCredits) {
             return NextResponse.json({ error: 'Insufficient credits.' }, { status: 403 });
