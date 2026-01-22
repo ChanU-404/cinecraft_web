@@ -103,13 +103,7 @@ export async function POST(req: NextRequest) {
         }
 
         const email = session.user.email;
-        let hasCredits = true;
-        try {
-            hasCredits = await checkCredits(email, 'draft');
-        } catch (e) {
-            console.warn("Credit Check Failed (DB Error), skipping check to allow generation.", e);
-            hasCredits = true; // Fallback to allow generation if DB is down
-        }
+        const hasCredits = await checkCredits(email, 'draft');
 
         if (!hasCredits) {
             return NextResponse.json({ error: 'Insufficient credits.' }, { status: 403 });
@@ -139,11 +133,7 @@ export async function POST(req: NextRequest) {
             }));
 
             // 4. Consume Credits (1 Credit per Batch Action)
-            try {
-                await consumeCredits(email, 'draft');
-            } catch (e) {
-                console.warn("Credit Consumption Failed (DB Error), ignoring.", e);
-            }
+            await consumeCredits(email, 'draft');
 
             return NextResponse.json({
                 shotId,
