@@ -528,33 +528,20 @@ export default function CineCraftWorkspace() {
         {(tier === 'MEMBER' || tier === 'PRO') && (
           <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937] space-y-3">
             <div className="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider">
-              <span>Monthly Credits</span>
+              <span>MONTHLY TOKENS</span>
               <span className={tier === 'PRO' ? 'text-[#ff365c]' : 'text-emerald-500'}>[{tier} PLAN]</span>
             </div>
 
-            {/* Drafts */}
+            {/* Image Quota (Single Metric) */}
             <div className="space-y-1">
               <div className="flex justify-between text-[9px] text-[#94a3b8] font-mono">
-                <span>DRAFT IMAGES</span>
+                <span>MONTHLY IMAGES</span>
                 <span>{usage.draft} / {quota.draft}</span>
               </div>
               <div className="h-1.5 bg-[#1f2937] rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${usage.draft >= quota.draft ? 'bg-red-500' : 'bg-[#3b82f6]'}`}
                   style={{ width: `${Math.min(100, (usage.draft / quota.draft) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-[9px] text-[#94a3b8] font-mono">
-                <span>FINAL RENDERS</span>
-                <span>{usage.final} / {quota.final}</span>
-              </div>
-              <div className="h-1.5 bg-[#1f2937] rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${usage.final >= quota.final ? 'bg-red-500' : 'bg-[#d946ef]'}`}
-                  style={{ width: `${Math.min(100, (usage.final / quota.final) * 100)}%` }}
                 />
               </div>
             </div>
