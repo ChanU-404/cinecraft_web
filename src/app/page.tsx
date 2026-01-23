@@ -18,8 +18,10 @@ import {
   FolderOpen,
   Pencil,
   ClipboardList,
-  LogOut
+  LogOut,
+  Download
 } from 'lucide-react';
+import { exportStoryboardPDF } from '@/utils/pdfExport';
 import { useScreenplay } from '@/context/ScreenplayContext';
 import { useSession, signIn, signOut } from "next-auth/react";
 import { OperationalInterview } from '@/components/OperationalInterview';
@@ -57,6 +59,7 @@ export default function CineCraftWorkspace() {
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportingAll, setIsExportingAll] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [guestEntered, setGuestEntered] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -150,6 +153,27 @@ export default function CineCraftWorkspace() {
     const docs = generateProductionDocuments(currentProjectTitle, scenes, answers);
     setGeneratedDocs(docs);
     setDocumentsOpen(true);
+  };
+
+  const handleExportProjectPDF = async () => {
+    if (scenes.length === 0) return;
+
+    // Check permission
+    const perm = checkPermission('export');
+    if (!perm.allowed) {
+      setUpgradeModalOpen(true);
+      return;
+    }
+
+    setIsExportingAll(true);
+    try {
+      await exportStoryboardPDF(scenes, currentProjectTitle);
+    } catch (e) {
+      console.error("Project Export failed", e);
+      alert("Failed to export Project PDF.");
+    } finally {
+      setIsExportingAll(false);
+    }
   };
 
   const handleExtract = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -582,13 +606,24 @@ export default function CineCraftWorkspace() {
 
             {/* Project Level Pre-Prod Trigger */}
             {scenes.length > 0 && (
-              <button
-                onClick={handleStartPreProd}
-                className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
-              >
-                <ClipboardList className="w-4 h-4" />
-                <span>{t('workspace', 'startPreProd')}</span>
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleExportProjectPDF}
+                  disabled={isExportingAll}
+                  className="flex items-center gap-2 bg-[#1f2937] hover:bg-[#334155] text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest border border-[#334155] transition-all disabled:opacity-50"
+                >
+                  {isExportingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  <span>{t('sceneDetail', 'fullProject')}</span>
+                </button>
+
+                <button
+                  onClick={handleStartPreProd}
+                  className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
+                >
+                  <ClipboardList className="w-4 h-4" />
+                  <span>{t('workspace', 'startPreProd')}</span>
+                </button>
+              </div>
             )}
 
             <div className="text-xs font-mono text-[#52525b] border border-[#27272a] px-3 py-1 rounded">

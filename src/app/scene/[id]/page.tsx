@@ -393,35 +393,24 @@ export default function SceneDetailPage() {
                 </div>
                 <div className="ml-auto flex items-center gap-3 text-xs font-mono text-[#94a3b8]">
                     {/* Export Group */}
-                    <div className="flex items-center bg-[#1f2937] rounded-lg border border-[#334155] p-0.5">
-                        <button
-                            onClick={handleExportPDF}
-                            disabled={isExporting || isExportingAll}
-                            className="px-3 py-1.5 rounded-md hover:bg-[#334155] text-white text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
-                            title="Export Current Scene"
-                        >
-                            {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                            <span>{t('sceneDetail', 'scene')}</span>
-                        </button>
-                        <div className="w-px h-4 bg-[#334155] mx-0.5" />
-                        <button
-                            onClick={handleExportProjectPDF}
-                            disabled={isExporting || isExportingAll}
-                            className="px-3 py-1.5 rounded-md hover:bg-[#334155] text-[#ff365c] hover:text-white text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
-                            title="Export Whole Project"
-                        >
-                            {isExportingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                            <span>{t('sceneDetail', 'fullProject')}</span>
-                        </button>
-                    </div>
+
+                    <button
+                        onClick={handleExportProjectPDF}
+                        disabled={isExporting || isExportingAll}
+                        className="px-3 py-1.5 rounded-md hover:bg-[#334155] text-[#ff365c] hover:text-white text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+                        title="Export Whole Project"
+                    >
+                        {isExportingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                        <span>{t('sceneDetail', 'fullProject')}</span>
+                    </button>
 
                     <div className="h-4 w-px bg-[#334155]" />
                     <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {scene.time}</span>
                 </div>
-            </header>
+            </header >
 
             {/* Main Content Scrollable Area */}
-            <div ref={mainContentRef} className="flex-1 overflow-y-auto custom-scrollbar relative">
+            < div ref={mainContentRef} className="flex-1 overflow-y-auto custom-scrollbar relative" >
                 <main className="py-10 px-6 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
 
                     {/* LEFT COLUMN: Script Reader */}
@@ -551,6 +540,9 @@ export default function SceneDetailPage() {
                                 const cached = (storyboardCache || {})[shot.id];
                                 const isGen = generatingShotId === shot.id;
 
+                                // Fix: Check if we have a selected image even if cache is missing
+                                const displayImages = cached || (shot.selectedImageUrl ? [{ imageUrl: shot.selectedImageUrl }] : null);
+
                                 return (
                                     <div key={shot.id} className="group bg-[#020617] border border-[#1f2937] rounded-xl p-5 hover:border-[#334155] transition-all flex flex-col gap-5">
 
@@ -562,7 +554,7 @@ export default function SceneDetailPage() {
                                                 <span className="px-2 py-0.5 rounded bg-[#1f2937] text-[10px] font-bold text-[#94a3b8] border border-[#334155] uppercase">{shot.camera}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                {cached && (
+                                                {displayImages && (
                                                     <button
                                                         onClick={() => handleGenerateStoryboard(shot, true)}
                                                         disabled={isGen}
@@ -582,9 +574,9 @@ export default function SceneDetailPage() {
 
                                         {/* Visuals */}
                                         <div className="pl-8">
-                                            {cached ? (
+                                            {displayImages ? (
                                                 <div className="grid grid-cols-3 gap-3">
-                                                    {cached.map((sb: any, i: number) => {
+                                                    {displayImages.map((sb: any, i: number) => {
                                                         const isCover = scene.selectedThumbnailUrl === sb.imageUrl;
                                                         const isSelectedForShot = shot.selectedImageUrl === sb.imageUrl;
 
@@ -685,47 +677,10 @@ export default function SceneDetailPage() {
                         </div>
                     </div>
 
-                    {/* BOTTOM: Visual Storyboard Timeline - Full Width */}
-                    <div className="col-span-1 lg:col-span-12 mt-10 border-t border-[#1f2937] pt-8">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-4">
-                                <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
-                                    <Film className="w-4 h-4" /> Storyboard Sequence
-                                </div>
-                                <div className="h-px w-32 bg-[#1f2937]" />
-                            </div>
-                        </div>
 
-                        <div className="flex gap-4 overflow-x-auto pb-6 custom-scrollbar">
-                            {scene.shots.map((shot: any, idx: number) => (
-                                <div key={shot.id} className="min-w-[200px] w-[200px] flex flex-col gap-2 group">
-                                    <div className="aspect-video bg-[#020617] rounded-lg border border-[#334155] overflow-hidden relative">
-                                        {shot.selectedImageUrl ? (
-                                            <img src={shot.selectedImageUrl} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-[#334155]">
-                                                <ImagePlus className="w-6 h-6 opacity-20" />
-                                            </div>
-                                        )}
-                                        <div className="absolute top-2 left-2 bg-black/50 backdrop-blur px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
-                                            {shot.id}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-start justify-between gap-2">
-                                        <p className="text-[10px] text-[#94a3b8] line-clamp-2 leading-tight flex-1">
-                                            {shot.description}
-                                        </p>
-                                        <div className="text-[9px] font-mono text-[#52525b] uppercase border border-[#1f2937] px-1 rounded">
-                                            {shot.type.substring(0, 4)}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
 
                 </main >
-            </div>
+            </div >
         </div >
     );
 }
