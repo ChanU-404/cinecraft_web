@@ -416,15 +416,6 @@ export default function SceneDetailPage() {
                     </div>
 
                     <div className="h-4 w-px bg-[#334155]" />
-                    <button
-                        onClick={() => setIsContextModalOpen(true)}
-                        className="flex items-center gap-1.5 hover:text-white transition-colors"
-                        title={t('globalContext', 'title')}
-                    >
-                        <FileText className="w-3.5 h-3.5" />
-                        Settings
-                    </button>
-                    <div className="h-4 w-px bg-[#334155]" />
                     <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {scene.time}</span>
                 </div>
             </header>
