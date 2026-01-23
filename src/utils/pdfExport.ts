@@ -13,10 +13,9 @@ const getBase64FromUrl = async (url: string): Promise<string> => {
         if (data.error) throw new Error(data.error);
 
         return data.base64 || "";
-    } catch (e) {
-        // Fallback logic
+    } catch (e: any) {
         console.warn("Base64 fetch failed", e);
-        return "";
+        throw new Error(e.message || "Proxy Error");
     }
 };
 
