@@ -98,6 +98,19 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
         return;
     }
 
+    // 1. Pre-load all images in parallel for performance
+    const imageMap: Record<string, string> = {};
+    const imageUrls = allShots
+        .map(shot => shot.shot.selectedImageUrl)
+        .filter((url): url is string => !!url);
+
+    // De-duplicate to avoid redundant fetches
+    const uniqueUrls = [...new Set(imageUrls)];
+    await Promise.all(uniqueUrls.map(async (url) => {
+        const base64 = await getBase64FromUrl(url);
+        if (base64) imageMap[url] = base64;
+    }));
+
     for (let p = 0; p < totalPages; p++) {
         if (p > 0) doc.addPage();
 
@@ -160,7 +173,6 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
                 // 1. Cut
                 doc.setFontSize(8);
                 doc.setFont('NanumGothic', 'bold');
-                // Split text to fit in column width (minus padding)
                 const sceneIdText = doc.splitTextToSize(`${scene.id}`, colWidths.cut - 2);
                 doc.text(sceneIdText, colX.cut + 1, y + 6);
 
@@ -184,13 +196,10 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
                 const imgX = colX.video + (colWidths.video - drawW) / 2;
                 const imgY = y + (rowHeight - drawH) / 2;
 
-                if (shot.selectedImageUrl) {
-                    const base64 = await getBase64FromUrl(shot.selectedImageUrl);
-                    if (base64) {
-                        try {
-                            doc.addImage(base64, 'JPEG', imgX, imgY, drawW, drawH, undefined, 'FAST');
-                        } catch (e) { }
-                    }
+                if (shot.selectedImageUrl && imageMap[shot.selectedImageUrl]) {
+                    try {
+                        doc.addImage(imageMap[shot.selectedImageUrl], 'JPEG', imgX, imgY, drawW, drawH, undefined, 'FAST');
+                    } catch (e) { }
                 }
 
                 // 3. Context
@@ -202,9 +211,11 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
         }
     }
 
+    // Sanitize filename: remove special characters that might break downloads
+    const safeTitle = projectTitle.replace(/[^a-zA-Z0-9가-힣\-_]/g, '_').substring(0, 50);
     const filename = scenes.length > 1
-        ? `${projectTitle.replace(/\s+/g, '_')}_Full_Storyboard.pdf`
-        : `${projectTitle.replace(/\s+/g, '_')}_Scene_${scenes[0].id}.pdf`;
+        ? `${safeTitle}_Full_Storyboard.pdf`
+        : `${safeTitle}_Scene_${String(scenes[0].id).replace(/[^a-zA-Z0-9가-힣\-_]/g, '_')}.pdf`;
 
     doc.save(filename);
 };

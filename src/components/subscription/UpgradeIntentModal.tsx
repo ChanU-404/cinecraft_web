@@ -57,14 +57,12 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <div className="p-4 bg-[#1e293b]/50 rounded-xl border border-[#334155] opacity-70">
                                         <h3 className="text-sm font-bold text-[#94a3b8] mb-2">CURRENT (FREE)</h3>
-                                        <div className="text-2xl font-bold text-white mb-1">20 <span className="text-xs font-normal text-[#64748b]">Drafts/mo</span></div>
-                                        <div className="text-2xl font-bold text-white">1 <span className="text-xs font-normal text-[#64748b]">Render/mo</span></div>
+                                        <div className="text-2xl font-bold text-white mb-1">40 <span className="text-xs font-normal text-[#64748b]">Images/mo</span></div>
                                     </div>
                                     <div className="p-4 bg-gradient-to-br from-[#1e293b] to-[#1e1b4b] rounded-xl border border-[#6366f1] relative">
                                         <div className="absolute top-2 right-2 px-2 py-0.5 bg-[#6366f1] text-white text-[10px] font-bold rounded-full">RECOMMENDED</div>
                                         <h3 className="text-sm font-bold text-[#6366f1] mb-2">PRO PLAN</h3>
-                                        <div className="text-2xl font-bold text-white mb-1">600 <span className="text-xs font-normal text-[#a5b4fc]">Drafts/mo</span></div>
-                                        <div className="text-2xl font-bold text-white">40 <span className="text-xs font-normal text-[#a5b4fc]">Renders/mo</span></div>
+                                        <div className="text-2xl font-bold text-white mb-1">400 <span className="text-xs font-normal text-[#a5b4fc]">Images/mo</span></div>
                                     </div>
                                 </div>
 

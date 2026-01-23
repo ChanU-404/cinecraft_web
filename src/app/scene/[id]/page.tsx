@@ -231,7 +231,9 @@ export default function SceneDetailPage() {
                     alert("프롬프트가 정책에 의해 차단되었거나 생성에 실패했습니다. 문장을 바꿔 다시 시도해주세요.");
                     throw new Error("Content Filtered");
                 }
-                throw new Error('Generation failed');
+                const msg = errData.error || 'Generation failed';
+                alert(`Error: ${msg}`);
+                throw new Error(msg);
             }
 
             const data = await response.json();

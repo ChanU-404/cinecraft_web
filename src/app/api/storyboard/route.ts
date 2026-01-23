@@ -69,7 +69,7 @@ async function generateSingleImage(apiKey: string, prompt: string, seed: number)
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "image/png", // Request binary for quality/speed
+            "Accept": "application/json", // request JSON for easier debugging/parsing
             "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify(requestBody),
@@ -77,17 +77,43 @@ async function generateSingleImage(apiKey: string, prompt: string, seed: number)
 
     if (!response.ok) {
         const txt = await response.text();
+        console.error(`Fireworks API Error ${response.status}: ${txt}`);
         throw new Error(`Fireworks API Error (${response.status}): ${txt}`);
     }
 
     const contentType = response.headers.get("content-type") || "";
+
+    // Handle JSON response (preferred)
     if (contentType.includes("application/json")) {
         const data = await response.json();
-        return data.image || (data.base64 && data.base64[0]) || "";
+
+        // Handle various response formats
+        let b64 = "";
+        if (data.base64) {
+            b64 = Array.isArray(data.base64) ? data.base64[0] : data.base64;
+        } else if (data.image) {
+            b64 = data.image;
+        } else if (data.images && Array.isArray(data.images)) {
+            // Sometimes strictly OpenAI format
+            b64 = data.images[0]?.base64 || data.images[0]?.url || ""; // url is unlikely for base64 mode
+        }
+
+        if (!b64) {
+            console.error("Fireworks response missing image data:", JSON.stringify(data).slice(0, 200));
+            throw new Error("Invalid response format from AI provider");
+        }
+
+        // Ensure header is present
+        if (!b64.startsWith("data:image")) {
+            return `data:image/jpeg;base64,${b64}`;
+        }
+        return b64;
+
     } else {
+        // Fallback for binary
         const buffer = await response.arrayBuffer();
         const b64 = Buffer.from(buffer).toString('base64');
-        return `data:${contentType || 'image/png'};base64,${b64}`;
+        return `data:${contentType || 'image/jpeg'};base64,${b64}`;
     }
 }
 
