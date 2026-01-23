@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -47,16 +47,71 @@ export default function CineCraftWorkspace() {
     saveCurrentProject,
     renameProject,
     deleteProjectHandler,
-    isSaving
+    isSaving,
+    projectGlobalContext,
+    updateProjectGlobalContext
   } = useScreenplay();
 
   const { tier, setTier, checkPermission, isGuest, usage, quota } = useSubscription();
+  const { t } = useLanguage();
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [guestEntered, setGuestEntered] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Global Context State
+  const [localGlobalPrompt, setLocalGlobalPrompt] = useState("");
+  const [isGlobalPromptSaved, setIsGlobalPromptSaved] = useState(false);
+
+  // Sync local prompt with context when project changes or context loads
+  useEffect(() => {
+    setLocalGlobalPrompt(projectGlobalContext || "");
+  }, [projectGlobalContext]);
+
+  // ... (rest of the file until Sidebar) ...
+
+  {/* Global Context / Director's Note */ }
+  <div className="space-y-3">
+    <div className="flex items-center gap-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest">
+      <Pencil className="w-3 h-3 text-[#ff365c]" />
+      <span>{t('sidebar', 'globalPromptTitle')}</span>
+    </div>
+
+    <div className="bg-[#111827] border border-[#334155] rounded-xl p-3 shadow-inner relative">
+      <textarea
+        className="w-full h-32 bg-transparent text-xs text-[#e8eefc] placeholder:text-[#334155] focus:outline-none resize-none"
+        placeholder={t('sidebar', 'placeholder')}
+        value={localGlobalPrompt}
+        onChange={(e) => {
+          setLocalGlobalPrompt(e.target.value);
+          setIsGlobalPromptSaved(false);
+        }}
+      />
+      <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#1f2937]">
+        <span className="text-[9px] text-[#52525b] uppercase font-bold tracking-wider">{t('sidebar', 'characters')}</span>
+        <button
+          onClick={() => {
+            updateProjectGlobalContext(localGlobalPrompt);
+            setIsGlobalPromptSaved(true);
+            setTimeout(() => setIsGlobalPromptSaved(false), 2000);
+          }}
+          className={`
+                        text-[9px] px-3 py-1 rounded-md font-bold uppercase tracking-widest transition-all
+                        ${isGlobalPromptSaved
+              ? 'bg-green-500 text-white'
+              : 'bg-[#ff365c] hover:bg-[#ff8f00] text-white'}
+                      `}
+        >
+          {isGlobalPromptSaved ? t('sidebar', 'saved') : t('sidebar', 'save')}
+        </button>
+      </div>
+    </div>
+    <p className="text-[9px] text-[#64748b] leading-relaxed px-1">
+      {t('sidebar', 'globalPromptDesc')}
+    </p>
+  </div>
   const [statusMessage, setStatusMessage] = useState("");
 
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
@@ -237,7 +292,6 @@ export default function CineCraftWorkspace() {
   // Guest Limitation: Truncate Scenes
   const displayScenes = isGuest ? scenes.slice(0, 3) : scenes;
 
-  const { t } = useLanguage();
 
   return (
     <div className="flex bg-[#0b0f17] text-[#e8eefc] h-screen overflow-hidden font-sans select-none relative">
@@ -375,28 +429,51 @@ export default function CineCraftWorkspace() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col p-4 gap-6 overflow-y-auto custom-scrollbar">
 
-          {/* Section 1: Project Library */}
-          <div className="p-4 border-b border-[#1f2937] bg-[#0b0f17]">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] mb-3 font-bold opacity-60 flex items-center gap-2">
-              <FolderOpen className="w-3 h-3 text-[#ff365c]" /> {t('workspace', 'projectLibrary')}
+          {/* Global Context / Director's Note */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest">
+              <Pencil className="w-3 h-3 text-[#ff365c]" />
+              <span>{t('sidebar', 'globalPromptTitle')}</span>
             </div>
 
-            {/* New Project Button */}
-            <button
-              onClick={() => {
-                createNewProject();
-                setIsModalOpen(true);
-              }}
-              className="w-full mb-3 bg-[#1e293b] hover:bg-[#ff365c] hover:text-white border border-[#334155] hover:border-[#ff365c] text-[#94a3b8] rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all group"
-            >
-              <div className="bg-[#334155] group-hover:bg-white/20 p-1 rounded-md transition-colors"><FileUp className="w-3.5 h-3.5" /></div>
-              <span className="text-xs font-bold uppercase tracking-wide">{t('workspace', 'newAnalysis')}</span>
-            </button>
+            <div className="bg-[#111827] border border-[#334155] rounded-xl p-3 shadow-inner">
+              <textarea
+                className="w-full h-32 bg-transparent text-xs text-[#e8eefc] placeholder:text-[#334155] focus:outline-none resize-none"
+                placeholder={t('sidebar', 'placeholder')}
+                value={localGlobalPrompt}
+                onChange={(e) => setLocalGlobalPrompt(e.target.value)}
+              />
+              <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#1f2937]">
+                <span className="text-[9px] text-[#52525b] uppercase font-bold tracking-wider">{t('sidebar', 'characters')}</span>
+                <button
+                  onClick={() => {
+                    updateProjectGlobalContext(localGlobalPrompt);
+                    setIsGlobalPromptSaved(true);
+                    setTimeout(() => setIsGlobalPromptSaved(false), 2000);
+                  }}
+                  className={`text-[9px] px-3 py-1 rounded-md font-bold uppercase tracking-widest transition-all ${isGlobalPromptSaved ? 'bg-green-500 text-white' : 'bg-[#ff365c] hover:bg-[#ff8f00] text-white'}`}
+                >
+                  {isGlobalPromptSaved ? t('sidebar', 'saved') : t('sidebar', 'save')}
+                </button>
+              </div>
+            </div>
+            <p className="text-[9px] text-[#64748b] leading-relaxed px-1">
+              {t('sidebar', 'globalPromptDesc')}
+            </p>
+          </div>
 
-            {/* Library List (Scrollable) */}
-            <div className="max-h-[150px] overflow-y-auto custom-scrollbar space-y-1">
+          {/* Compact Project List */}
+          <div className="pt-6 border-t border-[#1f2937] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2">
+                <FolderOpen className="w-3 h-3" />
+                <span>{t('workspace', 'projectLibrary')}</span>
+              </div>
+            </div>
+
+            <div className="max-h-[200px] overflow-y-auto custom-scrollbar space-y-1">
               {projects.map(p => (
                 <div
                   key={p.id}
@@ -408,32 +485,11 @@ export default function CineCraftWorkspace() {
                       `}
                   onClick={() => loadProject(p.id)}
                 >
-                  {editingProjectId === p.id ? (
-                    <input
-                      autoFocus
-                      className="bg-[#020617] border border-[#ff365c] text-white text-xs px-1 py-0.5 rounded w-full outline-none"
-                      defaultValue={p.title}
-                      onClick={(e) => e.stopPropagation()}
-                      onBlur={(e) => {
-                        renameProject?.(p.id, e.target.value);
-                        setEditingProjectId(null);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          renameProject?.(p.id, e.currentTarget.value);
-                          setEditingProjectId(null);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="truncate pr-2 flex-1">
-                      {p.title}
-                    </div>
-                  )}
-
+                  <div className="truncate pr-2 flex-1">
+                    {p.title}
+                  </div>
                   {/* Actions on Hover */}
                   <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => { e.stopPropagation(); setEditingProjectId(p.id); }} className="p-1 hover:text-white text-[#64748b]"><Pencil className="w-3 h-3" /></button>
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -448,78 +504,6 @@ export default function CineCraftWorkspace() {
                 </div>
               ))}
               {projects.length === 0 && <div className="text-[10px] text-[#334155] italic text-center p-2">{t('workspace', 'emptyLibrary')}</div>}
-            </div>
-
-            {/* Delete Confirmation Modal */}
-            <AnimatePresence>
-              {deleteConfirmationId && (
-                <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-[1px] flex items-center justify-center p-4">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-[#111827] border border-[#334155] p-4 rounded-xl shadow-2xl max-w-xs w-full text-center"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <h3 className="text-sm font-bold text-white mb-2">{t('workspace', 'deleteProject')}</h3>
-                    <p className="text-[10px] text-[#94a3b8] mb-4">{t('workspace', 'actionUndone')}</p>
-                    <div className="flex items-center gap-2 justify-center">
-                      <button
-                        onClick={() => setDeleteConfirmationId(null)}
-                        className="px-3 py-1.5 rounded-lg bg-[#1f2937] text-xs text-[#94a3b8] hover:text-white transition-colors"
-                      >
-                        {t('workspace', 'cancel')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (deleteConfirmationId) deleteProjectHandler(deleteConfirmationId);
-                          setDeleteConfirmationId(null);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-xs text-white font-bold transition-colors"
-                      >
-                        {t('workspace', 'delete')}
-                      </button>
-                    </div>
-                  </motion.div>
-                </div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Section 2: Active Screenplay Navigation */}
-          <div className="flex-1 flex flex-col min-h-0 bg-[#020617] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] font-bold opacity-60 flex items-center gap-2">
-                <Film className="w-3 h-3 text-[#ff365c]" /> {t('workspace', 'sceneNavigation')}
-              </div>
-              <div className="text-[9px] font-mono text-[#52525b] border border-[#1f2937] px-1.5 py-0.5 rounded">{scenes.length} {t('workspace', 'totalScenes')}</div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
-              {scenes.length > 0 ? (
-                scenes.map((scene, idx) => (
-                  <Link
-                    key={scene.id}
-                    href={`/scene/${encodeURIComponent(scene.id)}`}
-                    className={`
-                          group p-2.5 rounded-lg text-xs cursor-pointer transition-all duration-300 border bg-transparent flex items-start gap-3
-                          hover:bg-[#1e293b] hover:text-[#e8eefc] border-transparent
-                          ${scene.selectedThumbnailUrl ? 'text-[#e8eefc]' : 'text-[#64748b]'}
-                        `}
-                  >
-                    <div className={`mt-1 min-w-[4px] h-[4px] rounded-full ${scene.selectedThumbnailUrl ? 'bg-[#ff365c]' : 'bg-[#334155]'}`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold truncate opacity-90">{scene.id}: {scene.location}</div>
-                      <div className="text-[10px] opacity-50 truncate mt-0.5">{scene.summary}</div>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-[#334155] gap-2 border-2 border-dashed border-[#1f2937/50] rounded-xl">
-                  <FileUp className="w-8 h-8 opacity-20" />
-                  <span className="text-[10px] uppercase tracking-widest opacity-50">{t('workspace', 'emptyLibrary')}</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -699,9 +683,19 @@ export default function CineCraftWorkspace() {
             style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
 
           {scenes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-[#334155]">
-              <FileUp className="w-16 h-16 opacity-20 mb-4" />
-              <p className="text-sm font-bold tracking-widest uppercase opacity-50">Upload a PDF to Begin</p>
+            <div className="flex flex-col items-center justify-center h-full text-[#334155] animate-in fade-in zoom-in duration-500">
+              <div
+                onClick={() => setIsModalOpen(true)}
+                className="group cursor-pointer flex flex-col items-center gap-6 p-12 rounded-3xl border-2 border-dashed border-[#1f2937] hover:border-[#ff365c] hover:bg-[#1f2937]/30 transition-all duration-300"
+              >
+                <div className="p-6 bg-[#0f172a] rounded-full group-hover:scale-110 transition-transform duration-300 shadow-xl shadow-black/50">
+                  <FileUp className="w-12 h-12 text-[#64748b] group-hover:text-[#ff365c] transition-colors" />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-xl font-bold text-white tracking-tight">{t('workspace', 'newAnalysis')}</p>
+                  <p className="text-xs font-bold tracking-widest uppercase text-[#64748b] group-hover:text-[#94a3b8]">{t('workspace', 'dropZone')}</p>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="flex items-center h-full gap-12 px-24 min-w-max">

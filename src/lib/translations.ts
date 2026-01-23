@@ -74,9 +74,25 @@ export const translations = {
             styleLabel: "Art Style",
             stylePlaceholder: "e.g. Noir, rough pencil sketch, cinematic lighting.",
             save: "Save Context"
+        },
+        sidebar: {
+            globalPromptTitle: "Director's Note (Global)",
+            globalPromptDesc: "Define the style and characters for the entire project.",
+            save: "Save Config",
+            saved: "Saved",
+            characters: "Characters / Style Prompt",
+            placeholder: "e.g. Noir style, high contrast. Protagonist is a detective in a trench coat."
         }
     },
     ko: {
+        sidebar: {
+            globalPromptTitle: "감독 지시 (전체 설정)",
+            globalPromptDesc: "프로젝트 전체에 적용될 스타일과 캐릭터를 정의하세요.",
+            save: "설정 저장",
+            saved: "저장됨",
+            characters: "캐릭터 / 스타일 프롬프트",
+            placeholder: "예: 누아르 스타일, 고대비. 주인공은 트렌치 코트를 입은 형사."
+        },
         navbar: {
             features: "기능",
             solutions: "솔루션",

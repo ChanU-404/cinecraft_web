@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 const SYSTEM_PROMPT = `
 You are a Screenplay Visualization Assistant. Your role is to help a director refine their shot list and storyboard plan.
 You MUST respond in KOREAN (한국어).
+You MUST prioritize and apply the "Director's Global Note" (if provided) regarding style, characters, and tone to all your suggestions and edits.
 You have access to the current scene and its shots.
 The user will ask you to modify the plan (e.g., "Split this shot", "Change the angle", "Make it darker").
 
@@ -28,8 +29,8 @@ AVAILABLE OPERATIONS:
 
 Output JSON format:
 {
-    "reply": "I've updated the shot to be a close-up...",
-    "operations": [ ... ]
+  "reply": "I've updated the shot to be a close-up...",
+  "operations": [...]
 }
 `.trim();
 
@@ -44,14 +45,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized. Please sign in." }, { status: 401 });
     }
 
-    const { messages, scene, shots } = await req.json();
+    const { messages, scene, shots, projectGlobalContext } = await req.json();
 
     // Construct context
-    const contextMsg = `
+    let contextMsg = `
 Current Scene: ${scene.location}
 Shots:
 ${JSON.stringify(shots, null, 2)}
-        `.trim();
+`.trim();
+
+    if (projectGlobalContext) {
+      contextMsg = `
+DIRECTOR'S GLOBAL NOTE (Project Style/Characters):
+${projectGlobalContext}
+
+` + contextMsg;
+    }
 
     const fullMessages = [
       { role: "system", content: SYSTEM_PROMPT },

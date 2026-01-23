@@ -33,6 +33,7 @@ export interface Project {
     title: string;
     lastModified: number;
     scenes: Scene[];
+    globalContext?: string; // New: Project-level Director's Note
 }
 
 interface ScreenplayContextType {
@@ -40,12 +41,15 @@ interface ScreenplayContextType {
     setScenes: (scenes: Scene[]) => void;
     scriptText: string;
     setScriptText: (text: string) => void;
+    projectGlobalContext: string; // New state exposed
+    setProjectGlobalContext: (text: string) => void; // Direct setter if needed
     isAnalyzing: boolean;
     setIsAnalyzing: (isAnalyzing: boolean) => void;
     storyboardCache: Record<string, any[]>;
     updateStoryboardCache: (shotId: string, images: any[]) => void;
     updateSceneIntent: (sceneId: string, intent: string) => void;
     updateSceneGlobalContext: (sceneId: string, context: string) => void;
+    updateProjectGlobalContext: (context: string) => void;
     updateSceneShots: (sceneId: string, newShots: Shot[]) => void;
     selectSceneThumbnail: (sceneId: string, imageUrl: string) => void;
     selectShotImage: (sceneId: string, shotId: string, imageUrl: string) => void;
@@ -55,7 +59,7 @@ interface ScreenplayContextType {
     currentProjectId: string | null;
     createNewProject: () => void;
     loadProject: (projectId: string) => void;
-    saveCurrentProject: (title?: string, specificScenes?: Scene[]) => Promise<void>;
+    saveCurrentProject: (title?: string, specificScenes?: Scene[], specificGlobalContext?: string) => Promise<void>;
     renameProject: (projectId: string, newTitle: string) => Promise<void>;
     deleteProjectHandler: (projectId: string) => Promise<void>;
     isSaving: boolean;
@@ -66,6 +70,7 @@ const ScreenplayContext = createContext<ScreenplayContextType | undefined>(undef
 export function ScreenplayProvider({ children }: { children: ReactNode }) {
     const [scenes, setScenes] = useState<Scene[]>([]);
     const [scriptText, setScriptText] = useState("");
+    const [projectGlobalContext, setProjectGlobalContext] = useState(""); // State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [storyboardCache, setStoryboardCache] = useState<Record<string, any[]>>({});
 
@@ -116,6 +121,11 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
         });
     };
 
+    const updateProjectGlobalContext = (context: string) => {
+        setProjectGlobalContext(context);
+        saveCurrentProject(undefined, undefined, context);
+    };
+
     const updateSceneShots = (sceneId: string, newShots: Shot[]) => {
         setScenes(prev => {
             const newScenes = prev.map(scene =>
@@ -158,11 +168,12 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
         setCurrentProjectId(newId);
         setScenes([]);
         setScriptText("");
+        setProjectGlobalContext(""); // Reset
         setStoryboardCache({});
         setIsAnalyzing(false);
     };
 
-    const saveCurrentProject = async (title?: string, specificScenes?: Scene[]) => {
+    const saveCurrentProject = async (title?: string, specificScenes?: Scene[], specificGlobalContext?: string) => {
         if (!currentProjectId) {
             console.error("No current project ID");
             return;
@@ -170,6 +181,7 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
 
         const idToSave = currentProjectId;
         const scenesToSave = specificScenes || scenes;
+        const contextToSave = specificGlobalContext !== undefined ? specificGlobalContext : projectGlobalContext;
 
         // Find existing to preserve title if title arg isn't passed or is default
         const existing = projects.find(p => p.id === idToSave);
@@ -179,7 +191,8 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
             id: idToSave,
             title: finalTitle,
             lastModified: Date.now(),
-            scenes: scenesToSave
+            scenes: scenesToSave,
+            globalContext: contextToSave
         };
 
         // Optimistic UI Update
@@ -211,10 +224,6 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
             p.id === projectId ? { ...p, title: newTitle, lastModified: Date.now() } : p
         ));
 
-        // Sync with backend (we essentially just re-save the meta of that project)
-        // Since our backend is simple file storage, we need to be careful not to overwrite scenes with empty if we just send meta.
-        // But our `saveProject` on backend overwrites everything. 
-        // So we need to find the full project state to save it back.
         const project = projects.find(p => p.id === projectId);
         if (project) {
             const updatedProject = { ...project, title: newTitle, lastModified: Date.now() };
@@ -231,6 +240,7 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
         if (project) {
             setCurrentProjectId(project.id);
             setScenes(project.scenes || []);
+            setProjectGlobalContext(project.globalContext || ""); // Load context
             setStoryboardCache({});
         }
     };
@@ -250,12 +260,15 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
                 setScenes,
                 scriptText,
                 setScriptText,
+                projectGlobalContext,
+                setProjectGlobalContext,
                 isAnalyzing,
                 setIsAnalyzing,
                 storyboardCache,
                 updateStoryboardCache,
                 updateSceneIntent,
                 updateSceneGlobalContext,
+                updateProjectGlobalContext,
                 updateSceneShots,
                 selectSceneThumbnail,
                 selectShotImage,

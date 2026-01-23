@@ -29,7 +29,7 @@ export default function SceneDetailPage() {
     const { t } = useLanguage();
     const params = useParams();
     const router = useRouter();
-    const { scenes, storyboardCache, updateStoryboardCache, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects, updateSceneGlobalContext } = useScreenplay();
+    const { scenes, storyboardCache, updateStoryboardCache, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects, updateSceneGlobalContext, projectGlobalContext } = useScreenplay();
     const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
     const [generatingCount, setGeneratingCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -125,7 +125,8 @@ export default function SceneDetailPage() {
                 body: JSON.stringify({
                     messages: chatMessages.concat({ role: 'user', content: userMsg }),
                     scene: { location: scene.location, id: scene.id },
-                    shots: scene.shots
+                    shots: scene.shots,
+                    projectGlobalContext: projectGlobalContext // Pass Director's Note
                 })
             });
 
@@ -246,7 +247,8 @@ export default function SceneDetailPage() {
                         time: scene.time || "Day",
                         emotion: [],
                         directorIntent: scene.directorIntent,
-                        globalContext: scene.globalContext, // Pass Global Context
+                        sceneGlobalContext: scene.globalContext,
+                        projectGlobalContext: projectGlobalContext, // Pass Project Note
                         contextSummary: scriptContext
                     },
                     shot: {

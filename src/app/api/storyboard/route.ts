@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 async function refinePromptWithLLM(description: string, context: any, shot: any) {
-    const { location, time, emotion, directorIntent, globalContext } = context;
+    const { location, time, emotion, directorIntent, sceneGlobalContext, projectGlobalContext } = context;
     const { type, camera } = shot;
 
     const systemPrompt = `
@@ -27,10 +27,21 @@ async function refinePromptWithLLM(description: string, context: any, shot: any)
     4. STYLE: "Rough pencil sketch, charcoal style, loose lines, energetic, storyboard format. Black and white."
     5. NEGATIVE: No text, no frames, no color, no photorealism.
     
-    GLOBAL CONTEXT (Apply to all shots):
-    ${globalContext || "None"}
+    GLOBAL CONTEXT / DIRECTOR'S NOTE (CRITICAL - HIGHEST PRIORITY):
+    The "Director's Note" below is the SUPREME LAW. It overrides ANY conflicting information in the script description or character names.
+    
+    - Project Style/Director's Note: ${projectGlobalContext || "None"}
+    - Scene Context: ${sceneGlobalContext || "None"}
+    
+    CRITICAL INSTRUCTION - CHARACTER SUBSTITUTION:
+    If the Director's Note redefines a character (e.g., "The alien is actually a human man", "The detective is a cat"), you must PHYSICALLY REPLACE the character in your visual description.
+    - DO NOT write "An alien who looks like a man".
+    - WRITE "A human man". 
+    - STRIP OUT the original script word (e.g. "Alien") completely if it contradicts the Director's Note.
+    
+    If the Style is defined (e.g. "Cyberpunk", "Noir"), start the prompt with that style keyword.
 
-    Output Format: Just the English prompt string.
+    Output Format: return ONLY the English prompt string.
     `;
 
     const userPrompt = `

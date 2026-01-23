@@ -9,6 +9,7 @@ export interface Project {
     title: string;
     lastModified: number;
     scenes: any[];
+    globalContext?: string;
 }
 
 async function ensureDB() {

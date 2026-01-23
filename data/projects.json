@@ -8,7 +8,7 @@
   {
     "id": "e84b2ef4-328b-4347-aa11-e5590a885e08",
     "title": "Project: INT. 피자 가게...",
-    "lastModified": 1768999392760,
+    "lastModified": 1769148809403,
     "scenes": [
       {
         "id": "S_1",
@@ -271,7 +271,8 @@
           }
         ]
       }
-    ]
+    ],
+    "globalContext": "외계인은 사람이다!"
   },
   {
     "id": "5d9fd595-12bd-4b80-98eb-603269edaf19",
