@@ -7,10 +7,17 @@ const getBase64FromUrl = async (url: string): Promise<string> => {
         const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
         const res = await fetch(proxyUrl);
 
-        if (!res.ok) throw new Error("Proxy fetch failed");
+        let data;
+        try {
+            data = await res.json();
+        } catch (e) {
+            // If JSON parsing fails (e.g. timeout HTML page), fall back to status
+            if (!res.ok) throw new Error(`Proxy Status: ${res.status}`);
+        }
 
-        const data = await res.json();
-        if (data.error) throw new Error(data.error);
+        if (!res.ok || data?.error) {
+            throw new Error(data?.error || `Proxy Status: ${res.status}`);
+        }
 
         return data.base64 || "";
     } catch (e: any) {
