@@ -95,18 +95,33 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
         return;
     }
 
-    // 1. Pre-load all images in parallel for performance
+    // 1. Pre-load all images with concurrency control to avoid timeouts/rate-limits
     const imageMap: Record<string, string> = {};
+    const errorMap: Record<string, string> = {};
     const imageUrls = allShots
         .map(shot => shot.shot.selectedImageUrl)
         .filter((url): url is string => !!url);
 
-    // De-duplicate to avoid redundant fetches
     const uniqueUrls = [...new Set(imageUrls)];
-    await Promise.all(uniqueUrls.map(async (url) => {
-        const base64 = await getBase64FromUrl(url);
-        if (base64) imageMap[url] = base64;
-    }));
+
+    // Batch processing helper
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < uniqueUrls.length; i += BATCH_SIZE) {
+        const batch = uniqueUrls.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (url) => {
+            try {
+                const base64 = await getBase64FromUrl(url);
+                if (base64) {
+                    imageMap[url] = base64;
+                } else {
+                    errorMap[url] = "Empty Data";
+                }
+            } catch (err: any) {
+                console.error(`Failed to load ${url}`, err);
+                errorMap[url] = err.message || "Fetch Error";
+            }
+        }));
+    }
 
     for (let p = 0; p < totalPages; p++) {
         if (p > 0) doc.addPage();
@@ -197,15 +212,17 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
                     try {
                         // Pass undefined as format to let jsPDF auto-detect from data URL (PNG/JPEG)
                         doc.addImage(imageMap[shot.selectedImageUrl], imgX, imgY, drawW, drawH, undefined, 'FAST');
-                    } catch (e) {
+                    } catch (e: any) {
                         console.warn("Image add failed for", shot.selectedImageUrl, e);
                         doc.setFontSize(6);
-                        doc.text("(Image Error)", imgX, imgY + 10);
+                        doc.text(`(PDF Error: ${e.message})`, imgX, imgY + 10);
                     }
                 } else if (shot.selectedImageUrl) {
                     // Image URL exists but fetch failed
-                    doc.setFontSize(6);
-                    doc.text("(Load Failed)", imgX, imgY + 10);
+                    doc.setFontSize(5);
+                    const errorMsg = errorMap[shot.selectedImageUrl] || "Unknown Error";
+                    const splitError = doc.splitTextToSize(`Error: ${errorMsg}`, drawW);
+                    doc.text(splitError, imgX, imgY + 5);
                 }
 
                 // 3. Context
