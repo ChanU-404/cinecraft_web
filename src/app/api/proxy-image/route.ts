@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
-    const { searchParams } = new URL(req.url);
-    const url = searchParams.get('url');
+export async function POST(req: NextRequest) {
+    let url: string | undefined;
+
+    try {
+        const body = await req.json();
+        url = body.url;
+    } catch {
+        return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
 
     if (!url) {
         return NextResponse.json({ error: 'Missing URL' }, { status: 400 });

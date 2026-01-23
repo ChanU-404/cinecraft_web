@@ -4,8 +4,12 @@ import { Scene, Shot } from '@/context/ScreenplayContext';
 // Helper to load image as Base64 via Proxy
 const getBase64FromUrl = async (url: string): Promise<string> => {
     try {
-        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl);
+        const proxyUrl = `/api/proxy-image`;
+        const res = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+        });
 
         let data;
         try {
