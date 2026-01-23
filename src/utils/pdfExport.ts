@@ -119,7 +119,7 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
         doc.setLineWidth(0.5);
 
         doc.setFontSize(12);
-        doc.setFont('NanumGothic', 'bold');
+        doc.setFont('NanumGothic', 'normal'); // Bold not strictly available in single TTF load
         doc.setTextColor(0, 0, 0);
 
         // Title/Team
@@ -172,7 +172,7 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
 
                 // 1. Cut
                 doc.setFontSize(8);
-                doc.setFont('NanumGothic', 'bold');
+                doc.setFont('NanumGothic', 'normal');
                 const sceneIdText = doc.splitTextToSize(`${scene.id}`, colWidths.cut - 2);
                 doc.text(sceneIdText, colX.cut + 1, y + 6);
 
@@ -198,8 +198,17 @@ export const exportStoryboardPDF = async (scenesInput: Scene | Scene[], projectT
 
                 if (shot.selectedImageUrl && imageMap[shot.selectedImageUrl]) {
                     try {
-                        doc.addImage(imageMap[shot.selectedImageUrl], 'JPEG', imgX, imgY, drawW, drawH, undefined, 'FAST');
-                    } catch (e) { }
+                        // Pass undefined as format to let jsPDF auto-detect from data URL (PNG/JPEG)
+                        doc.addImage(imageMap[shot.selectedImageUrl], imgX, imgY, drawW, drawH, undefined, 'FAST');
+                    } catch (e) {
+                        console.warn("Image add failed for", shot.selectedImageUrl, e);
+                        doc.setFontSize(6);
+                        doc.text("(Image Error)", imgX, imgY + 10);
+                    }
+                } else if (shot.selectedImageUrl) {
+                    // Image URL exists but fetch failed
+                    doc.setFontSize(6);
+                    doc.text("(Load Failed)", imgX, imgY + 10);
                 }
 
                 // 3. Context

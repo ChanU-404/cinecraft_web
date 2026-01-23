@@ -442,6 +442,56 @@ export default function CineCraftWorkspace() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {deleteConfirmationId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-8"
+          >
+            <motion.div
+              initial={{ scale: 0.95 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.95 }}
+              className="bg-[#111827] border border-[#334155] w-full max-w-md rounded-2xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3 text-[#ff365c]">
+                <div className="p-2 bg-[#ff365c]/10 rounded-lg">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <h3 className="font-bold text-lg text-white">프로젝트 삭제</h3>
+              </div>
+
+              <p className="text-[#94a3b8] text-sm leading-relaxed">
+                정말로 이 프로젝트를 삭제하시겠습니까? <br />
+                삭제된 프로젝트는 복구할 수 없습니다.
+              </p>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setDeleteConfirmationId(null)}
+                  className="flex-1 py-2 rounded-lg text-sm font-bold text-[#94a3b8] hover:bg-[#1f2937] hover:text-white transition-colors"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    if (deleteConfirmationId) {
+                      deleteProjectHandler(deleteConfirmationId);
+                      setDeleteConfirmationId(null);
+                    }
+                  }}
+                  className="flex-1 py-2 rounded-lg text-sm font-bold bg-[#ff365c] hover:bg-[#ff1f4b] text-white shadow-lg shadow-[#ff365c]/20 transition-all"
+                >
+                  삭제 확인
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
       {/* Sidebar - Re-designed for Clarity */}
       <aside className="w-[280px] bg-[#020617] border-r border-[#1f2937] flex flex-col z-20">
@@ -648,6 +698,7 @@ export default function CineCraftWorkspace() {
                 className="w-full max-w-2xl h-[600px] relative pointer-events-auto"
               >
                 <OperationalInterview
+                  scenes={scenes}
                   onComplete={handleInterviewComplete}
                   onClose={() => setInterviewOpen(false)}
                 />
