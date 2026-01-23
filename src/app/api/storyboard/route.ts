@@ -69,7 +69,7 @@ async function generateSingleImage(apiKey: string, prompt: string, seed: number)
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Accept": "application/json", // request JSON for easier debugging/parsing
+            "Accept": "image/jpeg",
             "Authorization": `Bearer ${apiKey}`,
         },
         body: JSON.stringify(requestBody),
@@ -83,19 +83,24 @@ async function generateSingleImage(apiKey: string, prompt: string, seed: number)
 
     const contentType = response.headers.get("content-type") || "";
 
-    // Handle JSON response (preferred)
-    if (contentType.includes("application/json")) {
+    // 1. Handle Binary Image Response (Standard for Accept: image/jpeg)
+    if (contentType.includes("image/")) {
+        const buffer = await response.arrayBuffer();
+        const b64 = Buffer.from(buffer).toString('base64');
+        return `data:${contentType};base64,${b64}`;
+    }
+
+    // 2. Handle JSON Response (Fallback or specific error cases)
+    else if (contentType.includes("application/json")) {
         const data = await response.json();
 
-        // Handle various response formats
         let b64 = "";
         if (data.base64) {
             b64 = Array.isArray(data.base64) ? data.base64[0] : data.base64;
         } else if (data.image) {
             b64 = data.image;
         } else if (data.images && Array.isArray(data.images)) {
-            // Sometimes strictly OpenAI format
-            b64 = data.images[0]?.base64 || data.images[0]?.url || ""; // url is unlikely for base64 mode
+            b64 = data.images[0]?.base64 || data.images[0]?.url || "";
         }
 
         if (!b64) {
@@ -103,17 +108,16 @@ async function generateSingleImage(apiKey: string, prompt: string, seed: number)
             throw new Error("Invalid response format from AI provider");
         }
 
-        // Ensure header is present
         if (!b64.startsWith("data:image")) {
             return `data:image/jpeg;base64,${b64}`;
         }
         return b64;
-
     } else {
-        // Fallback for binary
+        // Unknown content type, attempt binary read
+        console.warn(`Unknown content type: ${contentType}, attempting binary read`);
         const buffer = await response.arrayBuffer();
         const b64 = Buffer.from(buffer).toString('base64');
-        return `data:${contentType || 'image/jpeg'};base64,${b64}`;
+        return `data:image/jpeg;base64,${b64}`;
     }
 }
 
