@@ -5,20 +5,17 @@ import { Scene, Shot } from '@/context/ScreenplayContext';
 const getBase64FromUrl = async (url: string): Promise<string> => {
     try {
         const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(url)}`;
-        const data = await fetch(proxyUrl);
-        if (!data.ok) throw new Error("Proxy fetch failed");
+        const res = await fetch(proxyUrl);
 
-        const blob = await data.blob();
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(blob);
-            reader.onloadend = () => {
-                const base64data = reader.result;
-                resolve(base64data as string);
-            };
-        });
+        if (!res.ok) throw new Error("Proxy fetch failed");
+
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+
+        return data.base64 || "";
     } catch (e) {
         // Fallback logic
+        console.warn("Base64 fetch failed", e);
         return "";
     }
 };

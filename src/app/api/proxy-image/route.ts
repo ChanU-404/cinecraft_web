@@ -5,36 +5,36 @@ export async function GET(req: NextRequest) {
     const url = searchParams.get('url');
 
     if (!url) {
-        return new NextResponse('Missing URL', { status: 400 });
+        return NextResponse.json({ error: 'Missing URL' }, { status: 400 });
     }
 
-    console.log(`[Proxy] Processing URL: ${url}`);
+    // console.log(`[Proxy] Processing URL: ${url}`);
 
     try {
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                // Mimic a standard browser to avoid blocking
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
         });
 
         if (!response.ok) {
-            console.error(`[Proxy] Failed to fetch: ${response.status} ${response.statusText}`);
-            throw new Error(`Failed to fetch image: ${response.statusText}`);
+            console.error(`[Proxy] Upstream Error: ${response.status} ${response.statusText}`);
+            return NextResponse.json({ error: `Upstream error: ${response.statusText}` }, { status: response.status });
         }
 
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const contentType = response.headers.get('content-type') || 'image/png';
 
-        console.log(`[Proxy] Success: ${contentType}, ${buffer.length} bytes`);
+        // Convert to Base64
+        const base64 = `data:${contentType};base64,${buffer.toString('base64')}`;
 
-        const headers = new Headers();
-        headers.set('Content-Type', contentType);
-        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        // console.log(`[Proxy] Success: ${buffer.length} bytes -> Base64`);
 
-        return new NextResponse(buffer, { headers });
-    } catch (error) {
+        return NextResponse.json({ base64 });
+    } catch (error: any) {
         console.error('[Proxy] Error:', error);
-        return new NextResponse('Failed to fetch image', { status: 500 });
+        return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
     }
 }
