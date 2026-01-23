@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ScreenplayProvider } from "@/context/ScreenplayContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 import { Providers } from "@/components/Providers";
 
@@ -34,9 +35,11 @@ export default function RootLayout({
       >
         <Providers>
           <SubscriptionProvider>
-            <ScreenplayProvider>
-              {children}
-            </ScreenplayProvider>
+            <LanguageProvider>
+              <ScreenplayProvider>
+                {children}
+              </ScreenplayProvider>
+            </LanguageProvider>
           </SubscriptionProvider>
         </Providers>
       </body>

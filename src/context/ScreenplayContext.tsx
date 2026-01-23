@@ -25,6 +25,7 @@ export interface Scene {
     shots: Shot[];
     directorIntent?: string;
     selectedThumbnailUrl?: string; // Scene Cover
+    globalContext?: string; // Phase 21: Global Context (Characters, Background)
 }
 
 export interface Project {
@@ -44,6 +45,7 @@ interface ScreenplayContextType {
     storyboardCache: Record<string, any[]>;
     updateStoryboardCache: (shotId: string, images: any[]) => void;
     updateSceneIntent: (sceneId: string, intent: string) => void;
+    updateSceneGlobalContext: (sceneId: string, context: string) => void;
     updateSceneShots: (sceneId: string, newShots: Shot[]) => void;
     selectSceneThumbnail: (sceneId: string, imageUrl: string) => void;
     selectShotImage: (sceneId: string, shotId: string, imageUrl: string) => void;
@@ -98,6 +100,16 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
         setScenes(prev => {
             const newScenes = prev.map(scene =>
                 scene.id === sceneId ? { ...scene, directorIntent: intent } : scene
+            );
+            saveCurrentProject(undefined, newScenes);
+            return newScenes;
+        });
+    };
+
+    const updateSceneGlobalContext = (sceneId: string, context: string) => {
+        setScenes(prev => {
+            const newScenes = prev.map(scene =>
+                scene.id === sceneId ? { ...scene, globalContext: context } : scene
             );
             saveCurrentProject(undefined, newScenes);
             return newScenes;
@@ -243,6 +255,7 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
                 storyboardCache,
                 updateStoryboardCache,
                 updateSceneIntent,
+                updateSceneGlobalContext,
                 updateSceneShots,
                 selectSceneThumbnail,
                 selectShotImage,

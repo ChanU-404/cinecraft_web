@@ -23,15 +23,19 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { exportStoryboardPDF } from '@/utils/pdfExport';
 
+import { useLanguage } from '@/context/LanguageContext';
+
 export default function SceneDetailPage() {
+    const { t } = useLanguage();
     const params = useParams();
     const router = useRouter();
-    const { scenes, storyboardCache, updateStoryboardCache, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects } = useScreenplay();
+    const { scenes, storyboardCache, updateStoryboardCache, updateSceneShots, selectSceneThumbnail, selectShotImage, currentProjectId, projects, updateSceneGlobalContext } = useScreenplay();
     const [generatingShotId, setGeneratingShotId] = useState<string | null>(null);
     const [generatingCount, setGeneratingCount] = useState(0);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [isExporting, setIsExporting] = useState(false);
     const [isExportingAll, setIsExportingAll] = useState(false);
+
 
     // Helper to get project title
     const currentProject = projects.find(p => p.id === currentProjectId);
@@ -73,6 +77,30 @@ export default function SceneDetailPage() {
 
     const sceneId = typeof params.id === 'string' ? decodeURIComponent(params.id) : '';
     const scene = scenes.find(s => s.id === sceneId);
+
+    // Scroll Reset on Scene Change
+    const mainContentRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (mainContentRef.current) {
+            mainContentRef.current.scrollTop = 0;
+        }
+    }, [sceneId]);
+
+    // Global Context State
+    const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+    const [localContext, setLocalContext] = useState(scene?.globalContext || "");
+
+    useEffect(() => {
+        setLocalContext(scene?.globalContext || "");
+    }, [scene?.globalContext]);
+
+    const handleSaveContext = () => {
+        if (scene) {
+            updateSceneGlobalContext(scene.id, localContext);
+            setIsContextModalOpen(false);
+        }
+    };
 
     // Auto-scroll chat
     useEffect(() => {
@@ -168,7 +196,7 @@ export default function SceneDetailPage() {
                     onClick={() => router.push('/')}
                     className="px-6 py-2 bg-[#1f2937] hover:bg-[#334155] rounded-xl text-white text-sm transition-colors border border-[#334155]"
                 >
-                    Go to Workspace
+                    {t('sceneDetail', 'returnToWorkspace')}
                 </button>
             </div>
         );
@@ -186,7 +214,7 @@ export default function SceneDetailPage() {
                     onClick={() => router.push('/')}
                     className="mt-8 px-6 py-2 bg-[#1f2937] hover:bg-[#334155] rounded-xl text-white text-sm transition-colors border border-[#334155]"
                 >
-                    Return to Workspace
+                    {t('sceneDetail', 'returnToWorkspace')}
                 </button>
             </div>
         );
@@ -215,7 +243,8 @@ export default function SceneDetailPage() {
                         time: scene.time || "Day",
                         emotion: [],
                         directorIntent: scene.directorIntent,
-                        contextSummary: scriptContext // Pass the script context
+                        globalContext: scene.globalContext, // Pass Global Context
+                        contextSummary: scriptContext
                     },
                     shot: {
                         type: shot.type,
@@ -286,6 +315,63 @@ export default function SceneDetailPage() {
                 )}
             </AnimatePresence>
 
+            {/* Global Context Modal */}
+            <AnimatePresence>
+                {isContextModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-6 text-white"
+                        onClick={() => setIsContextModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-[#111827] border border-[#334155] w-full max-w-lg rounded-2xl p-6 shadow-2xl"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-[#ff365c]" />
+                                    {t('globalContext', 'title')}
+                                </h2>
+                                <button onClick={() => setIsContextModalOpen(false)} className="p-2 hover:bg-[#1f2937] rounded-full">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <p className="text-sm text-[#94a3b8] mb-4">
+                                {t('globalContext', 'description')}
+                            </p>
+
+                            <textarea
+                                value={localContext}
+                                onChange={(e) => setLocalContext(e.target.value)}
+                                placeholder={`${t('globalContext', 'characterPlaceholder')}\n${t('globalContext', 'backgroundPlaceholder')}`}
+                                className="w-full h-40 bg-[#020617] border border-[#334155] rounded-xl p-4 text-sm focus:outline-none focus:border-[#ff365c] resize-none mb-6"
+                            />
+
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setIsContextModalOpen(false)}
+                                    className="px-4 py-2 rounded-lg text-sm font-bold text-[#94a3b8] hover:text-white"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveContext}
+                                    className="px-6 py-2 rounded-lg bg-[#ff365c] hover:bg-[#ff365c]/80 text-white text-sm font-bold"
+                                >
+                                    {t('globalContext', 'save')}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Header - Flex None to stay at top */}
             <header className="flex-none h-16 bg-[#0b0f17]/90 backdrop-blur-md border-b border-[#1f2937] flex items-center px-6 z-50">
                 <button
@@ -310,7 +396,7 @@ export default function SceneDetailPage() {
                             title="Export Current Scene"
                         >
                             {isExporting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                            <span>Scene</span>
+                            <span>{t('sceneDetail', 'scene')}</span>
                         </button>
                         <div className="w-px h-4 bg-[#334155] mx-0.5" />
                         <button
@@ -320,17 +406,26 @@ export default function SceneDetailPage() {
                             title="Export Whole Project"
                         >
                             {isExportingAll ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                            <span>Full Project</span>
+                            <span>{t('sceneDetail', 'fullProject')}</span>
                         </button>
                     </div>
 
+                    <div className="h-4 w-px bg-[#334155]" />
+                    <button
+                        onClick={() => setIsContextModalOpen(true)}
+                        className="flex items-center gap-1.5 hover:text-white transition-colors"
+                        title={t('globalContext', 'title')}
+                    >
+                        <FileText className="w-3.5 h-3.5" />
+                        Settings
+                    </button>
                     <div className="h-4 w-px bg-[#334155]" />
                     <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {scene.time}</span>
                 </div>
             </header>
 
             {/* Main Content Scrollable Area */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+            <div ref={mainContentRef} className="flex-1 overflow-y-auto custom-scrollbar relative">
                 <main className="py-10 px-6 max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10">
 
                     {/* LEFT COLUMN: Script Reader */}
@@ -338,7 +433,7 @@ export default function SceneDetailPage() {
                         <div className="sticky top-6 space-y-4">
                             <div className="bg-[#111827] border border-[#1f2937] rounded-xl p-8 shadow-xl max-h-[60vh] overflow-y-auto custom-scrollbar">
                                 <div className="text-[10px] uppercase tracking-widest text-[#52525b] mb-6 font-bold border-b border-[#1f2937] pb-2">
-                                    Original Script Context
+                                    {t('sceneDetail', 'originalScriptContext')}
                                 </div>
                                 <div className="space-y-6 font-serif text-[#cbd5f5] leading-loose">
                                     {scene.script_blocks?.map((block: { type: string; text: string; speaker?: string }, idx: number) => {
@@ -373,7 +468,7 @@ export default function SceneDetailPage() {
                             <div className="bg-[#111827] border border-[#1f2937] rounded-xl flex flex-col shadow-xl h-[400px]">
                                 <div className="p-4 border-b border-[#1f2937] flex items-center justify-between bg-[#0b0f17]/50 rounded-t-xl">
                                     <div className="text-[10px] uppercase tracking-widest text-[#ff365c] font-bold flex items-center gap-2">
-                                        <MessageSquare className="w-3 h-3" /> AI Assistant Director
+                                        <MessageSquare className="w-3 h-3" /> {t('sceneDetail', 'aiAssistantDirector')}
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {generatingCount > 0 && (
@@ -383,7 +478,7 @@ export default function SceneDetailPage() {
                                             </div>
                                         )}
                                         <div className="text-[8px] text-[#52525b] uppercase font-bold px-2 py-0.5 border border-[#1f2937] rounded">
-                                            Beta
+                                            {t('sceneDetail', 'beta')}
                                         </div>
                                     </div>
                                 </div>
@@ -451,7 +546,7 @@ export default function SceneDetailPage() {
                         <div className="flex items-center justify-between">
                             <div className="text-xs font-bold text-[#94a3b8] uppercase tracking-widest flex items-center gap-2">
                                 <Camera className="w-4 h-4 text-[#ff365c]" />
-                                Shot List ({scene.shots.length})
+                                {t('sceneDetail', 'shotList')} ({scene.shots.length})
                             </div>
                         </div>
 
@@ -575,13 +670,13 @@ export default function SceneDetailPage() {
                                                     {isGen ? (
                                                         <div className="flex flex-col items-center gap-2">
                                                             <Loader2 className="w-6 h-6 animate-spin text-[#ff365c]" />
-                                                            <span className="text-xs font-bold text-[#ff365c]">Generating Visuals...</span>
+                                                            <span className="text-xs font-bold text-[#ff365c]">{t('sceneDetail', 'generating')}</span>
                                                             <span className="text-[10px] text-[#52525b]">This may take up to 20s</span>
                                                         </div>
                                                     ) : (
                                                         <>
                                                             <ImagePlus className="w-6 h-6" />
-                                                            <span className="text-xs font-bold uppercase tracking-widest">Generate Visuals</span>
+                                                            <span className="text-xs font-bold uppercase tracking-widest">{t('sceneDetail', 'generateVisuals')}</span>
                                                         </>
                                                     )}
                                                 </button>

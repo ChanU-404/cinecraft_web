@@ -10,7 +10,7 @@ const openai = new OpenAI({
 });
 
 async function refinePromptWithLLM(description: string, context: any, shot: any) {
-    const { location, time, emotion, directorIntent } = context;
+    const { location, time, emotion, directorIntent, globalContext } = context;
     const { type, camera } = shot;
 
     const systemPrompt = `
@@ -27,6 +27,9 @@ async function refinePromptWithLLM(description: string, context: any, shot: any)
     4. STYLE: "Rough pencil sketch, charcoal style, loose lines, energetic, storyboard format. Black and white."
     5. NEGATIVE: No text, no frames, no color, no photorealism.
     
+    GLOBAL CONTEXT (Apply to all shots):
+    ${globalContext || "None"}
+
     Output Format: Just the English prompt string.
     `;
 

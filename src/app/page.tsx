@@ -560,34 +560,7 @@ export default function CineCraftWorkspace() {
 
 
         <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937]">
-          {/* Auto Save Status */}
-          {currentProjectId && (
-            <button
-              onClick={() => {
-                const perm = checkPermission('save');
-                if (!perm.allowed) {
-                  setUpgradeModalOpen(true);
-                  return;
-                }
-                saveCurrentProject?.();
-              }}
-              disabled={isSaving}
-              className="w-full bg-[#1e293b] border border-[#334155] rounded-xl p-3 flex items-center justify-center gap-2 hover:bg-[#334155] transition-all disabled:opacity-50 relative overflow-hidden"
-            >
-              {isGuest || tier === 'MEMBER' ? <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10"><Lock className="w-4 h-4 text-white/50" /></div> : null}
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#94a3b8]" />
-                  <span className="text-xs font-bold text-[#94a3b8]">Saving...</span>
-                </>
-              ) : (
-                <>
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span className="text-xs font-bold text-emerald-500">Save Project</span>
-                </>
-              )}
-            </button>
-          )}
+          {/* Save Project Button Removed */}
 
           <div className="flex items-center gap-3">
             <div className="relative">
