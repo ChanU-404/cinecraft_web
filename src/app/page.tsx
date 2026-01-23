@@ -30,6 +30,7 @@ import { CallSheetData, ShootingScheduleData } from '@/types/production';
 import { LoginView } from '@/components/LoginView';
 import { useSubscription } from '@/context/SubscriptionContext';
 import UpgradeIntentModal from '@/components/subscription/UpgradeIntentModal';
+import { useLanguage } from '@/context/LanguageContext';
 import { Lock } from 'lucide-react';
 
 export default function CineCraftWorkspace() {
@@ -236,7 +237,7 @@ export default function CineCraftWorkspace() {
   // Guest Limitation: Truncate Scenes
   const displayScenes = isGuest ? scenes.slice(0, 3) : scenes;
 
-
+  const { t } = useLanguage();
 
   return (
     <div className="flex bg-[#0b0f17] text-[#e8eefc] h-screen overflow-hidden font-sans select-none relative">
@@ -268,8 +269,8 @@ export default function CineCraftWorkspace() {
                   <FileUp className="w-6 h-6" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">Upload Screenplay PDF</h2>
-                  <p className="text-sm text-[#94a3b8]">Strictly PDF only. The AI will infer the structure.</p>
+                  <h2 className="text-xl font-bold text-white">{t('workspace', 'uploadPDF')}</h2>
+                  <p className="text-sm text-[#94a3b8]">{t('workspace', 'uploadDesc')}</p>
                 </div>
               </div>
 
@@ -299,21 +300,21 @@ export default function CineCraftWorkspace() {
                       <div className="p-4 bg-[#10b981]/20 rounded-full text-[#10b981]">
                         <FileUp className="w-8 h-8" />
                       </div>
-                      <div className="text-white font-bold text-lg">PDF Extracted Successfully</div>
-                      <div className="text-xs text-[#94a3b8] mb-4">Ready to generate scene graph</div>
+                      <div className="text-white font-bold text-lg">{t('workspace', 'success')}</div>
+                      <div className="text-xs text-[#94a3b8] mb-4">{t('workspace', 'ready')}</div>
                       <button
                         onClick={handleAnalyze}
                         className="bg-[#10b981] hover:bg-[#059669] text-white px-8 py-3 rounded-xl font-bold uppercase tracking-widest text-xs transition-transform hover:scale-105 shadow-lg shadow-[#10b981]/20"
                       >
-                        Start AI Director Analysis
+                        {t('workspace', 'startAnalysis')}
                       </button>
                     </>
                   ) : (
                     <>
                       <FileUp className="w-10 h-10 opacity-50" />
                       <div className="space-y-1">
-                        <div className="text-sm font-bold uppercase tracking-widest">Click to Upload PDF</div>
-                        <div className="text-xs opacity-50">No manual entry. No DOCX.</div>
+                        <div className="text-sm font-bold uppercase tracking-widest">{t('workspace', 'dropZone')}</div>
+                        <div className="text-xs opacity-50">{t('workspace', 'dropZoneDesc')}</div>
                       </div>
                     </>
                   )}
@@ -326,7 +327,7 @@ export default function CineCraftWorkspace() {
                     🚨 {errorMsg}
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] text-[#64748b] mb-2 uppercase tracking-tighter">Parser failing? Try manual mode:</p>
+                    <p className="text-[10px] text-[#64748b] mb-2 uppercase tracking-tighter">{t('workspace', 'manualTitle')}</p>
                     <button
                       onClick={() => {
                         const text = prompt("Paste your screenplay text here:");
@@ -339,14 +340,14 @@ export default function CineCraftWorkspace() {
                       }}
                       className="text-[10px] text-[#ff365c] hover:underline font-bold uppercase tracking-widest"
                     >
-                      Paste Text Manually
+                      {t('workspace', 'manualPaste')}
                     </button>
                   </div>
                 </div>
               )}
 
               <div className="text-[10px] text-center text-[#52525b] uppercase tracking-widest font-medium">
-                CineCraft AI Assistant Director Mode
+                {t('workspace', 'assistantMode')}
               </div>
             </motion.div>
           </motion.div>
@@ -379,7 +380,7 @@ export default function CineCraftWorkspace() {
           {/* Section 1: Project Library */}
           <div className="p-4 border-b border-[#1f2937] bg-[#0b0f17]">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] mb-3 font-bold opacity-60 flex items-center gap-2">
-              <FolderOpen className="w-3 h-3 text-[#ff365c]" /> Project Library
+              <FolderOpen className="w-3 h-3 text-[#ff365c]" /> {t('workspace', 'projectLibrary')}
             </div>
 
             {/* New Project Button */}
@@ -391,7 +392,7 @@ export default function CineCraftWorkspace() {
               className="w-full mb-3 bg-[#1e293b] hover:bg-[#ff365c] hover:text-white border border-[#334155] hover:border-[#ff365c] text-[#94a3b8] rounded-lg p-2.5 flex items-center justify-center gap-2 transition-all group"
             >
               <div className="bg-[#334155] group-hover:bg-white/20 p-1 rounded-md transition-colors"><FileUp className="w-3.5 h-3.5" /></div>
-              <span className="text-xs font-bold uppercase tracking-wide">New Analysis</span>
+              <span className="text-xs font-bold uppercase tracking-wide">{t('workspace', 'newAnalysis')}</span>
             </button>
 
             {/* Library List (Scrollable) */}
@@ -400,11 +401,11 @@ export default function CineCraftWorkspace() {
                 <div
                   key={p.id}
                   className={`
-                      group flex items-center justify-between p-2 rounded-md cursor-pointer transition-all border text-xs
-                      ${currentProjectId === p.id
+                        group flex items-center justify-between p-2 rounded-md cursor-pointer transition-all border text-xs
+                        ${currentProjectId === p.id
                       ? 'bg-[#1e293b] border-[#ff365c]/30 text-white font-bold'
                       : 'bg-transparent border-transparent text-[#64748b] hover:bg-[#1e293b] hover:text-[#94a3b8]'}
-                    `}
+                      `}
                   onClick={() => loadProject(p.id)}
                 >
                   {editingProjectId === p.id ? (
@@ -446,7 +447,7 @@ export default function CineCraftWorkspace() {
                   </div>
                 </div>
               ))}
-              {projects.length === 0 && <div className="text-[10px] text-[#334155] italic text-center p-2">Empty Library</div>}
+              {projects.length === 0 && <div className="text-[10px] text-[#334155] italic text-center p-2">{t('workspace', 'emptyLibrary')}</div>}
             </div>
 
             {/* Delete Confirmation Modal */}
@@ -460,14 +461,14 @@ export default function CineCraftWorkspace() {
                     className="bg-[#111827] border border-[#334155] p-4 rounded-xl shadow-2xl max-w-xs w-full text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <h3 className="text-sm font-bold text-white mb-2">Delete Project?</h3>
-                    <p className="text-[10px] text-[#94a3b8] mb-4">This action cannot be undone.</p>
+                    <h3 className="text-sm font-bold text-white mb-2">{t('workspace', 'deleteProject')}</h3>
+                    <p className="text-[10px] text-[#94a3b8] mb-4">{t('workspace', 'actionUndone')}</p>
                     <div className="flex items-center gap-2 justify-center">
                       <button
                         onClick={() => setDeleteConfirmationId(null)}
                         className="px-3 py-1.5 rounded-lg bg-[#1f2937] text-xs text-[#94a3b8] hover:text-white transition-colors"
                       >
-                        Cancel
+                        {t('workspace', 'cancel')}
                       </button>
                       <button
                         onClick={() => {
@@ -476,7 +477,7 @@ export default function CineCraftWorkspace() {
                         }}
                         className="px-3 py-1.5 rounded-lg bg-red-500 hover:bg-red-600 text-xs text-white font-bold transition-colors"
                       >
-                        Delete
+                        {t('workspace', 'delete')}
                       </button>
                     </div>
                   </motion.div>
@@ -489,9 +490,9 @@ export default function CineCraftWorkspace() {
           <div className="flex-1 flex flex-col min-h-0 bg-[#020617] p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="text-[10px] uppercase tracking-[0.2em] text-[#94a3b8] font-bold opacity-60 flex items-center gap-2">
-                <Film className="w-3 h-3 text-[#ff365c]" /> Scene Navigation
+                <Film className="w-3 h-3 text-[#ff365c]" /> {t('workspace', 'sceneNavigation')}
               </div>
-              <div className="text-[9px] font-mono text-[#52525b] border border-[#1f2937] px-1.5 py-0.5 rounded">{scenes.length} Scenes</div>
+              <div className="text-[9px] font-mono text-[#52525b] border border-[#1f2937] px-1.5 py-0.5 rounded">{scenes.length} {t('workspace', 'totalScenes')}</div>
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
@@ -501,10 +502,10 @@ export default function CineCraftWorkspace() {
                     key={scene.id}
                     href={`/scene/${encodeURIComponent(scene.id)}`}
                     className={`
-                        group p-2.5 rounded-lg text-xs cursor-pointer transition-all duration-300 border bg-transparent flex items-start gap-3
-                        hover:bg-[#1e293b] hover:text-[#e8eefc] border-transparent
-                        ${scene.selectedThumbnailUrl ? 'text-[#e8eefc]' : 'text-[#64748b]'}
-                      `}
+                          group p-2.5 rounded-lg text-xs cursor-pointer transition-all duration-300 border bg-transparent flex items-start gap-3
+                          hover:bg-[#1e293b] hover:text-[#e8eefc] border-transparent
+                          ${scene.selectedThumbnailUrl ? 'text-[#e8eefc]' : 'text-[#64748b]'}
+                        `}
                   >
                     <div className={`mt-1 min-w-[4px] h-[4px] rounded-full ${scene.selectedThumbnailUrl ? 'bg-[#ff365c]' : 'bg-[#334155]'}`} />
                     <div className="flex-1 min-w-0">
@@ -516,7 +517,7 @@ export default function CineCraftWorkspace() {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center text-[#334155] gap-2 border-2 border-dashed border-[#1f2937/50] rounded-xl">
                   <FileUp className="w-8 h-8 opacity-20" />
-                  <span className="text-[10px] uppercase tracking-widest opacity-50">No Scene Data</span>
+                  <span className="text-[10px] uppercase tracking-widest opacity-50">{t('workspace', 'emptyLibrary')}</span>
                 </div>
               )}
             </div>
@@ -528,14 +529,14 @@ export default function CineCraftWorkspace() {
         {(tier === 'MEMBER' || tier === 'PRO') && (
           <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937] space-y-3">
             <div className="flex items-center justify-between text-[10px] uppercase font-bold text-[#64748b] tracking-wider">
-              <span>MONTHLY TOKENS</span>
+              <span>{t('workspace', 'monthlyTokens')}</span>
               <span className={tier === 'PRO' ? 'text-[#ff365c]' : 'text-emerald-500'}>[{tier} PLAN]</span>
             </div>
 
             {/* Image Quota (Single Metric) */}
             <div className="space-y-1">
               <div className="flex justify-between text-[9px] text-[#94a3b8] font-mono">
-                <span>MONTHLY IMAGES</span>
+                <span>{t('workspace', 'monthlyImages')}</span>
                 <span>{usage.draft} / {quota.draft}</span>
               </div>
               <div className="h-1.5 bg-[#1f2937] rounded-full overflow-hidden">
@@ -551,7 +552,7 @@ export default function CineCraftWorkspace() {
                 onClick={() => setUpgradeModalOpen(true)}
                 className="w-full mt-2 bg-gradient-to-r from-[#ff365c] to-[#ff8f00] text-white text-[10px] font-black uppercase tracking-widest py-2 rounded-lg hover:shadow-lg hover:shadow-[#ff365c]/20 transition-all active:scale-95"
               >
-                Upgrade to Pro
+                {t('workspace', 'upgradePro')}
               </button>
             )}
           </div>
@@ -571,12 +572,12 @@ export default function CineCraftWorkspace() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-xs font-bold text-white truncate">{session?.user?.name || 'User'}</div>
-              <div className="text-[10px] text-[#64748b] truncate">Director Mode</div>
+              <div className="text-[10px] text-[#64748b] truncate">{t('workspace', 'directorMode')}</div>
             </div>
             <button
               onClick={() => signOut()}
               className="p-2 hover:bg-[#1f2937] hover:text-white text-[#64748b] rounded-lg transition-colors"
-              title="Sign Out"
+              title={t('workspace', 'signOut')}
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -590,7 +591,7 @@ export default function CineCraftWorkspace() {
         <header className="h-16 border-b border-[#1f2937] flex items-center justify-between px-10 bg-[#0b0f17]/80 backdrop-blur-xl z-30">
           <div className="flex items-center gap-4 text-xs text-[#94a3b8] font-bold tracking-widest uppercase">
             <Layout className="w-4 h-4 text-[#ff365c]" />
-            <span>Visualization Flow</span>
+            <span>{t('workspace', 'visualizationFlow')}</span>
           </div>
 
           <div className="flex items-center gap-6">
@@ -602,12 +603,12 @@ export default function CineCraftWorkspace() {
                 className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
               >
                 <ClipboardList className="w-4 h-4" />
-                <span>Start Pre-Production</span>
+                <span>{t('workspace', 'startPreProd')}</span>
               </button>
             )}
 
             <div className="text-xs font-mono text-[#52525b] border border-[#27272a] px-3 py-1 rounded">
-              TOTAL SCENES: {scenes.length}
+              {t('workspace', 'totalScenes')}: {scenes.length}
             </div>
           </div>
         </header>

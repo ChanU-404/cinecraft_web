@@ -82,9 +82,12 @@ export default function SceneDetailPage() {
     const mainContentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (mainContentRef.current) {
-            mainContentRef.current.scrollTop = 0;
-        }
+        // Enforce scroll to top with a small delay to handle layout shifts
+        setTimeout(() => {
+            if (mainContentRef.current) {
+                mainContentRef.current.scrollTo({ top: 0, behavior: 'instant' });
+            }
+        }, 10);
     }, [sceneId]);
 
     // Global Context State
@@ -525,7 +528,7 @@ export default function SceneDetailPage() {
                                                     handleChatSubmit();
                                                 }
                                             }}
-                                            placeholder="Type instructions (e.g. 'Split shot 1.1', 'Make it a close up')..."
+                                            placeholder={t('chat', 'placeholder')}
                                             className="w-full bg-[#020617] border border-[#334155] rounded-lg pl-3 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-[#ff365c] placeholder:text-[#334155]"
                                         />
                                         <button

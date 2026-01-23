@@ -72,6 +72,15 @@ export function LoginView({ onGuestEnter }: LoginViewProps) {
                         Continue with Google
                     </button>
 
+                    {process.env.NODE_ENV === 'development' && (
+                        <button
+                            onClick={() => signIn("credentials")}
+                            className="w-full bg-[#1e293b] text-[#94a3b8] hover:bg-[#334155] hover:text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm border border-[#334155] border-dashed"
+                        >
+                            <span>🛠️ Dev Mode: Mock Login</span>
+                        </button>
+                    )}
+
 
 
                     <button
