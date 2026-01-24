@@ -107,4 +107,5 @@ export interface SchedulerOptions {
     dailyConfigs: DailyConfig[];
     lunchDuration: number; // minutes
     locationMap?: Record<string, string>;
+    sceneDurationOverrides?: Record<string, number>; // sceneId -> hours
 }

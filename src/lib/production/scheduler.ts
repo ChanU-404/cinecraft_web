@@ -73,7 +73,7 @@ export function generateDraftSchedule(
     scenes: Scene[],
     options: SchedulerOptions
 ): ProductionDocModel {
-    const { dailyConfigs, lunchDuration, locationMap = {} } = options;
+    const { dailyConfigs, lunchDuration, locationMap = {}, sceneDurationOverrides = {} } = options;
 
     // 1. Extract Scenes & Map Locations
     const prodScenes: ProductionScene[] = scenes.map((s, i) => {
@@ -82,6 +82,10 @@ export function generateDraftSchedule(
         const mappedName = locationMap[extracted.locationName];
         if (mappedName) {
             extracted.locationName = mappedName; // Override with real world name
+        }
+        // Apply custom duration override if exists (convert hours to minutes)
+        if (sceneDurationOverrides[s.id] && sceneDurationOverrides[s.id] > 0) {
+            extracted.estimatedDuration = sceneDurationOverrides[s.id] * 60; // hours to minutes
         }
         return extracted;
     });

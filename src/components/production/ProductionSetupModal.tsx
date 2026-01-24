@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, Users, X, Check, ChevronRight } from 'lucide-react';
 import { DailyConfig } from '@/lib/production/types';
+import { Scene } from '@/context/ScreenplayContext';
 
 interface SetupData {
     startDate: string;
@@ -10,6 +11,7 @@ interface SetupData {
     defaultMaxHours: number;
     lunchDuration: number;
     dailyConfigs: DailyConfig[];
+    sceneDurationOverrides: Record<string, number>; // sceneId -> hours
     locationMap: Record<string, string>;
 }
 
@@ -18,19 +20,21 @@ interface ProductionSetupModalProps {
     onClose: () => void;
     onComplete: (data: SetupData) => void;
     uniqueLocations: string[];
+    scenes: Scene[]; // Added to display scene list
 }
 
-export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocations }: ProductionSetupModalProps) {
+export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocations, scenes }: ProductionSetupModalProps) {
     const [step, setStep] = useState(1);
     const [data, setData] = useState<SetupData>(() => {
         const today = new Date().toISOString().split('T')[0];
         return {
             startDate: today,
             endDate: today,
-            defaultCallTime: "07:00",
+            defaultCallTime: "06:00",
             defaultMaxHours: 12,
             lunchDuration: 60,
             dailyConfigs: [],
+            sceneDurationOverrides: {},
             locationMap: {}
         };
     });
@@ -69,7 +73,7 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
     }, [uniqueLocations]);
 
     const handleNext = () => {
-        if (step < 4) setStep(step + 1);
+        if (step < 5) setStep(step + 1);
         else onComplete(data);
     };
 
@@ -77,6 +81,16 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
         const newConfigs = [...data.dailyConfigs];
         newConfigs[index] = { ...newConfigs[index], [field]: value };
         setData({ ...data, dailyConfigs: newConfigs });
+    };
+
+    const updateSceneDuration = (sceneId: string, hours: number) => {
+        setData({
+            ...data,
+            sceneDurationOverrides: {
+                ...data.sceneDurationOverrides,
+                [sceneId]: hours
+            }
+        });
     };
 
     if (!isOpen) return null;
@@ -93,7 +107,7 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                 <div className="bg-[#0f172a] p-4 border-b border-[#334155] flex justify-between items-center shrink-0">
                     <h2 className="font-bold text-white flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-[#ff365c]" />
-                        스케줄 초기 설정 (Schedule Setup) - Step {step}/4
+                        스케줄 초기 설정 (Schedule Setup) - Step {step}/5
                     </h2>
                     <button onClick={onClose} className="p-1 hover:bg-[#334155] rounded-full text-gray-400">
                         <X className="w-5 h-5" />
@@ -247,6 +261,46 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                                 exit={{ x: -10, opacity: 0 }}
                                 className="space-y-6"
                             >
+                                <h3 className="text-lg font-bold text-emerald-400 mb-4">씬별 촬영시간 설정 (Scene Durations)</h3>
+                                <p className="text-xs text-gray-500 mb-4">각 씬의 예상 촬영시간을 시간 단위로 입력하세요. 입력하지 않으면 자동으로 계산됩니다.</p>
+
+                                <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
+                                    {scenes.map((scene, index) => (
+                                        <div key={scene.id} className="bg-[#0b0f17] p-3 rounded-lg border border-[#334155]">
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-gray-400 font-mono text-sm w-12">#{index + 1}</span>
+                                                <div className="flex-1">
+                                                    <p className="text-white text-sm font-bold">{scene.location}</p>
+                                                    <p className="text-gray-500 text-xs">{scene.summary.substring(0, 60)}...</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        min="0.5"
+                                                        max="24"
+                                                        step="0.5"
+                                                        placeholder="Auto"
+                                                        value={data.sceneDurationOverrides[scene.id] || ''}
+                                                        onChange={(e) => updateSceneDuration(scene.id, parseFloat(e.target.value) || 0)}
+                                                        className="w-20 bg-[#1e293b] border border-[#334155] rounded p-2 text-sm text-white text-center focus:border-[#ff365c] focus:outline-none"
+                                                    />
+                                                    <span className="text-gray-400 text-sm">시간</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {step === 4 && (
+                            <motion.div
+                                key="step4"
+                                initial={{ x: 10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: -10, opacity: 0 }}
+                                className="space-y-6"
+                            >
                                 <h3 className="text-lg font-bold text-emerald-400 mb-4">로케이션 매핑 (Real World Locations)</h3>
                                 <p className="text-xs text-gray-500 mb-4">시나리오상의 장소를 실제 촬영지 주소나 이름으로 연결해주세요.</p>
 
@@ -273,9 +327,9 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                             </motion.div>
                         )}
 
-                        {step === 4 && (
+                        {step === 5 && (
                             <motion.div
-                                key="step4"
+                                key="step5"
                                 initial={{ x: 10, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
                                 exit={{ x: -10, opacity: 0 }}
@@ -298,6 +352,12 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                                         <span>기본 집합:</span> <span className="text-white">{data.defaultCallTime}</span>
                                     </div>
                                     <div className="flex justify-between">
+                                        <span>씬 개수:</span> <span className="text-white">{scenes.length}개</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span>커스텀 시간 설정:</span> <span className="text-white">{Object.keys(data.sceneDurationOverrides).filter(k => data.sceneDurationOverrides[k] > 0).length}개 씬</span>
+                                    </div>
+                                    <div className="flex justify-between">
                                         <span>장소:</span> <span className="text-white">{Object.values(data.locationMap).filter(Boolean).length}곳 설정됨</span>
                                     </div>
                                 </div>
@@ -318,8 +378,8 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                         onClick={handleNext}
                         className="bg-[#ff365c] hover:bg-[#ff1f4b] text-white px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                     >
-                        {step === 4 ? '스케줄 생성 (Generate)' : '다음'}
-                        {step < 4 && <ChevronRight className="w-4 h-4" />}
+                        {step === 5 ? '스케줄 생성 (Generate)' : '다음'}
+                        {step < 5 && <ChevronRight className="w-4 h-4" />}
                     </button>
                 </div>
             </motion.div>

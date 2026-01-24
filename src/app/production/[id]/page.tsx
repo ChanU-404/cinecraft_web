@@ -90,8 +90,6 @@ export default function ProductionPage() {
                                 AI Copilot
                             </button>
                             <div className="w-px h-6 bg-[#334155] mx-2" />
-                            {/* Export Buttons temporarily disabled until updated for multi-day */}
-                            {/*
                             <button
                                 onClick={() => generateScheduleXLSX(docData)}
                                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-bold"
@@ -104,7 +102,6 @@ export default function ProductionPage() {
                             >
                                 <FileText className="w-4 h-4" /> Export PDF
                             </button>
-                            */}
                         </>
                     )}
                 </div>
@@ -261,6 +258,7 @@ export default function ProductionPage() {
                             onClose={() => setShowSetup(false)}
                             onComplete={handleSetupComplete}
                             uniqueLocations={uniqueLocations}
+                            scenes={scenes}
                         />
                     )}
                 </AnimatePresence>
