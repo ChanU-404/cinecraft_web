@@ -1,8 +1,4 @@
-import fs from 'fs/promises';
-import path from 'path';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'projects.json');
+import prisma from '@/lib/db';
 
 export interface Project {
     id: string;
@@ -12,42 +8,48 @@ export interface Project {
     globalContext?: string;
 }
 
-async function ensureDB() {
-    try {
-        await fs.access(DATA_DIR);
-    } catch {
-        await fs.mkdir(DATA_DIR);
-    }
-    try {
-        await fs.access(DB_PATH);
-    } catch {
-        await fs.writeFile(DB_PATH, JSON.stringify([]));
-    }
-}
-
 export async function getProjects(): Promise<Project[]> {
-    await ensureDB();
-    const data = await fs.readFile(DB_PATH, 'utf-8');
-    return JSON.parse(data);
+    const dbProjects = await prisma.project.findMany({
+        orderBy: { lastModified: 'desc' }
+    });
+
+    return dbProjects.map(p => ({
+        id: p.id,
+        title: p.title,
+        lastModified: p.lastModified.getTime(),
+        scenes: p.scenes as any[], // Casting JSON type
+        globalContext: p.globalContext || undefined
+    }));
 }
 
 export async function saveProject(project: Project): Promise<void> {
-    await ensureDB();
-    const projects = await getProjects();
-    const index = projects.findIndex(p => p.id === project.id);
-
-    if (index >= 0) {
-        projects[index] = { ...project, lastModified: Date.now() };
-    } else {
-        projects.push({ ...project, lastModified: Date.now() });
-    }
-
-    await fs.writeFile(DB_PATH, JSON.stringify(projects, null, 2));
+    await prisma.project.upsert({
+        where: { id: project.id },
+        update: {
+            title: project.title,
+            scenes: project.scenes,
+            globalContext: project.globalContext || "",
+            // lastModified is auto-updated by @updatedAt, but we can force update if we want to sync perfectly
+            lastModified: new Date(project.lastModified)
+        },
+        create: {
+            id: project.id,
+            title: project.title,
+            scenes: project.scenes,
+            globalContext: project.globalContext || "",
+            lastModified: new Date(project.lastModified)
+        }
+    });
 }
 
 export async function deleteProject(id: string): Promise<void> {
-    await ensureDB();
-    const projects = await getProjects();
-    const filtered = projects.filter(p => p.id !== id);
-    await fs.writeFile(DB_PATH, JSON.stringify(filtered, null, 2));
+    try {
+        await prisma.project.delete({
+            where: { id }
+        });
+    } catch (e) {
+        // Handle "Record to delete does not exist" gracefully if needed
+        console.error("Delete failed", e);
+    }
 }
+

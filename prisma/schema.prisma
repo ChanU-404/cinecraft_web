@@ -70,3 +70,15 @@ model ExperimentEvent {
 
   user        User?    @relation(fields: [userId], references: [id])
 }
+
+model Project {
+  id           String   @id @default(uuid())
+  userId       String?
+  title        String
+  lastModified DateTime @updatedAt
+  scenes       Json     @default("[]") // Storing scenes structure as JSON
+  globalContext String? @default("")
+  createdAt    DateTime @default(now())
+  
+  user         User?    @relation(fields: [userId], references: [id])
+}
