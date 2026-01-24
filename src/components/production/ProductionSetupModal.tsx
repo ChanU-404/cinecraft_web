@@ -129,7 +129,34 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                                 exit={{ x: -10, opacity: 0 }}
                                 className="space-y-6"
                             >
-                                <h3 className="text-lg font-bold text-emerald-400 mb-4">날짜 범위 및 기본 설정</h3>
+                                <h3 className="text-lg font-bold text-emerald-400 mb-4">제작진 정보 및 일정 설정</h3>
+                                
+                                {/* Crew Info */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">감독 (Director)</label>
+                                        <input
+                                            type="text"
+                                            value={data.director}
+                                            onChange={(e) => setData({ ...data, director: e.target.value })}
+                                            placeholder="감독 이름 입력"
+                                            className="w-full bg-[#0b0f17] border border-[#334155] rounded-lg p-3 text-white focus:border-[#ff365c] focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">프로듀서 (Producer)</label>
+                                        <input
+                                            type="text"
+                                            value={data.producer}
+                                            onChange={(e) => setData({ ...data, producer: e.target.value })}
+                                            placeholder="프로듀서 이름 입력"
+                                            className="w-full bg-[#0b0f17] border border-[#334155] rounded-lg p-3 text-white focus:border-[#ff365c] focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-[#334155] pt-4 mt-2"></div>
+
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">

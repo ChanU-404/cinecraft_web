@@ -259,8 +259,8 @@ export function generateDraftSchedule(
         project: {
             title: project.title,
             episodeNumber: "",
-            director: "",
-            producer: ""
+            director: options.director || "",
+            producer: options.producer || ""
         },
         days
     };
