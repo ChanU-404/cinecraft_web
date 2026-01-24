@@ -108,4 +108,6 @@ export interface SchedulerOptions {
     lunchDuration: number; // minutes
     locationMap?: Record<string, string>;
     sceneDurationOverrides?: Record<string, number>; // sceneId -> hours
+    director?: string;
+    producer?: string;
 }
