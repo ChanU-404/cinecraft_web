@@ -13,6 +13,8 @@ interface SetupData {
     dailyConfigs: DailyConfig[];
     sceneDurationOverrides: Record<string, number>; // sceneId -> hours
     locationMap: Record<string, string>;
+    director: string;
+    producer: string;
 }
 
 interface ProductionSetupModalProps {
@@ -31,11 +33,13 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
             startDate: today,
             endDate: today,
             defaultCallTime: "06:00",
-            defaultMaxHours: 12,
+            defaultMaxHours: 10,
             lunchDuration: 60,
             dailyConfigs: [],
             sceneDurationOverrides: {},
-            locationMap: {}
+            locationMap: {},
+            director: "",
+            producer: ""
         };
     });
 
@@ -164,7 +168,7 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                                         <div className="flex items-center gap-2">
                                             <input
                                                 type="range"
-                                                min="8"
+                                                min="6"
                                                 max="16"
                                                 step="0.5"
                                                 value={data.defaultMaxHours}
@@ -236,7 +240,7 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocati
                                                     <div className="flex items-center gap-2">
                                                         <input
                                                             type="range"
-                                                            min="8"
+                                                            min="6"
                                                             max="16"
                                                             step="0.5"
                                                             value={config.maxHours}
