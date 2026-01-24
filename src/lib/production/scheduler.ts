@@ -68,12 +68,20 @@ export function extractSceneData(scene: Scene, index: number): ProductionScene {
 
 // --- Scheduler (Heuristic) ---
 
+// New options interface
+export interface ScheduleOptions {
+    date: string;
+    callTime: string;
+    maxHours?: number;
+    lunchDuration?: number;
+}
+
 export function generateDraftSchedule(
     project: Project,
     scenes: Scene[],
-    date: string = new Date().toISOString().split('T')[0],
-    callTime: string = "07:00"
+    options: ScheduleOptions = { date: new Date().toISOString().split('T')[0], callTime: "07:00" }
 ): ProductionDocModel {
+    const { date, callTime, lunchDuration = 60 } = options;
 
     // 1. Extract Scenes
     const prodScenes: ProductionScene[] = scenes.map((s, i) => extractSceneData(s, i));

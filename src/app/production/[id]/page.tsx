@@ -10,6 +10,7 @@ import { generateScheduleXLSX } from '@/lib/renderers/xlsxRenderer';
 import { Calendar, FileSpreadsheet, FileText, ArrowLeft, RefreshCw, Save, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductionChat } from '@/components/production/ProductionChat';
+import { ProductionSetupModal } from '@/components/production/ProductionSetupModal';
 
 export default function ProductionPage() {
     const params = useParams();
@@ -20,6 +21,7 @@ export default function ProductionPage() {
     const [docData, setDocData] = useState<ProductionDocModel | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [showChat, setShowChat] = useState(false);
+    const [showSetup, setShowSetup] = useState(false);
 
     const projectId = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : null;
 
@@ -29,16 +31,22 @@ export default function ProductionPage() {
         }
     }, [projectId, currentProjectId]);
 
-    // Initialize/Generate logic
-    const handleGenerate = () => {
+    // Initialize logic
+    const handleStartSetup = () => {
+        setShowSetup(true);
+    };
+
+    const handleSetupComplete = (options: any) => {
+        setShowSetup(false);
         if (!currentProjectId) return;
+
         const project = projects.find(p => p.id === currentProjectId);
         if (!project) return;
 
         setIsLoading(true);
         // Simulate "Processing" time
         setTimeout(() => {
-            const draft = generateDraftSchedule(project, scenes);
+            const draft = generateDraftSchedule(project, scenes, options);
             setDocData(draft);
             setIsLoading(false);
         }, 800);
@@ -49,9 +57,9 @@ export default function ProductionPage() {
     const currentProject = projects.find(p => p.id === projectId);
 
     return (
-        <div className="min-h-screen bg-[#020617] text-white flex flex-col relative overflow-hidden">
+        <div className="h-screen bg-[#020617] text-white flex flex-col overflow-hidden">
             {/* Header */}
-            <header className="h-16 border-b border-[#1f2937] flex items-center px-6 gap-4 bg-[#0f172a] z-50">
+            <header className="h-16 shrink-0 border-b border-[#1f2937] flex items-center px-6 gap-4 bg-[#0f172a] z-50">
                 <button onClick={() => router.push('/')} className="p-2 hover:bg-[#1e293b] rounded-full">
                     <ArrowLeft className="w-5 h-5 text-gray-400" />
                 </button>
@@ -85,20 +93,21 @@ export default function ProductionPage() {
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="flex-1 flex overflow-hidden relative">
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+            {/* Main Content - Fixed Scroll */}
+            <main className="flex-1 relative overflow-hidden flex flex-col">
+                <div className="absolute inset-0 overflow-y-auto p-4 md:p-8 custom-scrollbar">
                     {!docData ? (
-                        <div className="h-full flex flex-col items-center justify-center space-y-6">
+                        <div className="h-full flex flex-col items-center justify-center space-y-6 min-h-[500px]">
                             <div className="bg-[#1e293b] p-8 rounded-2xl border border-[#334155] max-w-lg w-full text-center shadow-xl">
                                 <Calendar className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
                                 <h2 className="text-2xl font-bold mb-2">Create Shooting Schedule</h2>
                                 <p className="text-gray-400 mb-8">
-                                    AI will analyze your {scenes.length} scenes to create an optimized schedule and call sheet draft.
+                                    AI will analyze your {scenes.length} scenes to create an optimized schedule. <br />
+                                    First, let's set some constraints.
                                 </p>
 
                                 <button
-                                    onClick={handleGenerate}
+                                    onClick={handleStartSetup}
                                     disabled={isLoading}
                                     className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all"
                                 >
@@ -107,7 +116,7 @@ export default function ProductionPage() {
                                             <RefreshCw className="w-5 h-5 animate-spin" /> Generating...
                                         </>
                                     ) : (
-                                        "Generate Draft Schedule"
+                                        "Start Schedule Setup"
                                     )}
                                 </button>
                             </div>
@@ -197,6 +206,17 @@ export default function ProductionPage() {
                             docData={docData}
                             onUpdate={(newDoc) => setDocData(newDoc)}
                             onClose={() => setShowChat(false)}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* Setup Modal */}
+                <AnimatePresence>
+                    {showSetup && (
+                        <ProductionSetupModal
+                            isOpen={showSetup}
+                            onClose={() => setShowSetup(false)}
+                            onComplete={handleSetupComplete}
                         />
                     )}
                 </AnimatePresence>
