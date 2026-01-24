@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useScreenplay } from '@/context/ScreenplayContext';
 import { generateDraftSchedule } from '@/lib/production/scheduler';
 import { ProductionDocModel } from '@/lib/production/types';
-import { generateCallSheetPDF } from '@/lib/renderers/pdfRenderer';
+import { generateCallSheetPDF, generateShootingSchedulePDF } from '@/lib/renderers/pdfRenderer';
 import { generateScheduleXLSX } from '@/lib/renderers/xlsxRenderer';
 import { Calendar, FileSpreadsheet, FileText, ArrowLeft, RefreshCw, Save, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -91,16 +91,16 @@ export default function ProductionPage() {
                             </button>
                             <div className="w-px h-6 bg-[#334155] mx-2" />
                             <button
-                                onClick={() => generateScheduleXLSX(docData)}
+                                onClick={() => generateShootingSchedulePDF(docData)}
                                 className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-bold"
                             >
-                                <FileSpreadsheet className="w-4 h-4" /> Export XLSX
+                                <FileSpreadsheet className="w-4 h-4" /> 일촬표 PDF
                             </button>
                             <button
                                 onClick={() => generateCallSheetPDF(docData)}
                                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-bold"
                             >
-                                <FileText className="w-4 h-4" /> Call Sheet PDF
+                                <FileText className="w-4 h-4" /> 콜시트 PDF
                             </button>
                         </>
                     )}

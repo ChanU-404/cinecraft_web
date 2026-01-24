@@ -180,3 +180,162 @@ export function generateCallSheetPDF(docData: ProductionDocModel) {
     const filename = `CallSheet_${docData.project.title.replace(/\s+/g, '_')}_${docData.days[0].date}.pdf`;
     pdfMake.createPdf(docDefinition).download(filename);
 }
+
+// Shooting Schedule PDF (일촬표)
+export function generateShootingSchedulePDF(docData: ProductionDocModel) {
+    const docDefinition: any = {
+        content: [],
+        defaultStyle: {
+            font: 'Roboto',
+            fontSize: 9
+        },
+        styles: {
+            header: {
+                fontSize: 16,
+                bold: true,
+                alignment: 'center',
+                margin: [0, 0, 0, 10]
+            },
+            dayHeader: {
+                fontSize: 12,
+                bold: true,
+                margin: [0, 15, 0, 5],
+                fillColor: '#e8e8e8'
+            },
+            tableHeader: {
+                bold: true,
+                fontSize: 10,
+                color: 'white',
+                fillColor: '#2c3e50'
+            }
+        },
+        pageMargins: [30, 50, 30, 50],
+        pageOrientation: 'landscape'
+    };
+
+    // Overall Header
+    docDefinition.content.push({
+        text: `SHOOTING SCHEDULE - ${docData.project.title}`,
+        style: 'header'
+    });
+
+    // Generate content for each day
+    docData.days.forEach((day, dayIndex) => {
+        if (dayIndex > 0) {
+            docDefinition.content.push({ text: '', pageBreak: 'before' });
+        }
+
+        // Day Header
+        docDefinition.content.push({
+            table: {
+                widths: ['*'],
+                body: [[{
+                    text: `Day ${day.dayNumber} [${day.date}] | Call: ${day.shootDay.callTime} | Loc: ${day.shootDay.mainLocation.name}`,
+                    style: 'dayHeader'
+                }]]
+            },
+            layout: 'noBorders'
+        });
+
+        // Scenes Table
+        const scenesTable = {
+            table: {
+                headerRows: 1,
+                widths: ['auto', '*', 'auto', 'auto', '*', '*'],
+                body: [
+                    [
+                        { text: 'Order', style: 'tableHeader' },
+                        { text: 'Scene / Slugline', style: 'tableHeader' },
+                        { text: 'INT/EXT', style: 'tableHeader' },
+                        { text: 'DAY/NIGHT', style: 'tableHeader' },
+                        { text: 'Cast', style: 'tableHeader' },
+                        { text: 'Synopsis/Notes', style: 'tableHeader' }
+                    ],
+                    ...day.scenes.map(scene => [
+                        scene.order.toString(),
+                        `${scene.sceneNumber}. ${scene.sluglineTitle}`,
+                        scene.intExt,
+                        scene.dayNight,
+                        scene.characters.join(', '),
+                        scene.synopsis || '-'
+                    ])
+                ]
+            },
+            layout: {
+                fillColor: (rowIndex: number) => (rowIndex === 0 ? '#2c3e50' : (rowIndex % 2 === 0 ? '#f5f5f5' : null))
+            },
+            margin: [0, 5, 0, 15]
+        };
+
+        docDefinition.content.push(scenesTable);
+
+        // Timetable
+        docDefinition.content.push({
+            text: 'Detailed Schedule (세부 일정)',
+            fontSize: 11,
+            bold: true,
+            margin: [0, 0, 0, 5]
+        });
+
+        const timetableTable = {
+            table: {
+                headerRows: 1,
+                widths: ['auto', '*', 'auto', 'auto'],
+                body: [
+                    [
+                        { text: 'Time', style: 'tableHeader' },
+                        { text: 'Activity', style: 'tableHeader' },
+                        { text: 'Location', style: 'tableHeader' },
+                        { text: 'Duration', style: 'tableHeader' }
+                    ],
+                    ...day.timetable.map(block => [
+                        block.time,
+                        block.activityLabel + (block.memo ? `\n(${block.memo})` : ''),
+                        block.location || '',
+                        `${block.duration}m`
+                    ])
+                ]
+            },
+            layout: 'lightHorizontalLines',
+            margin: [0, 0, 0, 15]
+        };
+
+        docDefinition.content.push(timetableTable);
+
+        // Cast Call Times
+        if (day.castCalls.length > 0) {
+            docDefinition.content.push({
+                text: 'CAST CALL TIMES',
+                fontSize: 11,
+                bold: true,
+                margin: [0, 0, 0, 5]
+            });
+
+            const castTable = {
+                table: {
+                    headerRows: 1,
+                    widths: ['*', '*', 'auto'],
+                    body: [
+                        [
+                            { text: 'Character', style: 'tableHeader' },
+                            { text: 'Actor', style: 'tableHeader' },
+                            { text: 'Call Time', style: 'tableHeader' }
+                        ],
+                        ...day.castCalls.map(cast => [
+                            cast.characterName,
+                            cast.actorName || 'TBD',
+                            cast.callTime
+                        ])
+                    ]
+                },
+                layout: 'lightHorizontalLines'
+            };
+
+            docDefinition.content.push(castTable);
+        }
+    });
+
+    // Generate and download PDF
+    const filename = `ShootingSchedule_${docData.project.title.replace(/\s+/g, '_')}_${docData.days[0].date}.pdf`;
+    pdfMake.createPdf(docDefinition).download(filename);
+}
