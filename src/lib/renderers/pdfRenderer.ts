@@ -1,341 +1,337 @@
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { ProductionDocModel } from '../production/types';
 
-// Register fonts - use type assertion to fix type mismatch
-(pdfMake as any).vfs = pdfFonts;
-
+// Call Sheet PDF using browser print
 export function generateCallSheetPDF(docData: ProductionDocModel) {
-    const docDefinition: any = {
-        content: [],
-        defaultStyle: {
-            font: 'Roboto',
-            fontSize: 10
-        },
-        styles: {
-            header: {
-                fontSize: 18,
-                bold: true,
-                alignment: 'center',
-                margin: [0, 0, 0, 10]
-            },
-            subheader: {
-                fontSize: 14,
-                bold: true,
-                margin: [0, 10, 0, 5]
-            },
-            tableHeader: {
-                bold: true,
-                fontSize: 11,
-                color: 'white',
-                fillColor: '#0f172a'
-            }
-        },
-        pageMargins: [40, 60, 40, 60]
-    };
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
 
-    // Generate content for each day
-    docData.days.forEach((day, dayIndex) => {
-        if (dayIndex > 0) {
-            docDefinition.content.push({ text: '', pageBreak: 'before' });
+    let htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Call Sheet</title>
+    <style>
+        @media print {
+            @page { margin: 1cm; }
+            body { margin: 0; }
+            .page-break { page-break-before: always; }
         }
-
-        // Header
-        docDefinition.content.push({
-            text: `CALL SHEET - DAY ${day.dayNumber}`,
-            style: 'header'
-        });
-
-        // Project Info
-        docDefinition.content.push({
-            columns: [
-                {
-                    width: '*',
-                    stack: [
-                        { text: `Project: ${docData.project.title}`, bold: true },
-                        { text: `Director: ${docData.project.director || '-'}` },
-                        { text: `Producer: ${docData.project.producer || '-'}` }
-                    ]
-                },
-                {
-                    width: 'auto',
-                    stack: [
-                        { text: `Date: ${day.shootDay.date}`, alignment: 'right' },
-                        { text: `Call Time: ${day.shootDay.callTime}`, alignment: 'right' },
-                        { text: `Location: ${day.shootDay.mainLocation.name}`, alignment: 'right' }
-                    ]
-                }
-            ],
-            margin: [0, 0, 0, 10]
-        });
-
-        // Announcements
-        if (day.announcements) {
-            docDefinition.content.push({
-                text: `NOTE: ${day.announcements}`,
-                background: '#f0f0f0',
-                margin: [0, 0, 0, 10],
-                color: '#c80000'
-            });
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
         }
+        .header {
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .info-left { flex: 1; }
+        .info-right { text-align: right; }
+        .note {
+            background: #f0f0f0;
+            padding: 8px;
+            margin: 10px 0;
+            color: #c80000;
+            font-weight: bold;
+        }
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th {
+            background: #0f172a;
+            color: white;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+        }
+        td {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 6px 8px;
+        }
+        tr:nth-child(even) {
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+<body>
+`;
 
-        // Schedule Table
-        docDefinition.content.push({
-            text: 'Schedule',
-            style: 'subheader'
-        });
+    docData.days.forEach((day, index) => {
+        if (index > 0) htmlContent += '<div class="page-break"></div>';
 
-        const scheduleTable = {
-            table: {
-                headerRows: 1,
-                widths: ['auto', '*', 'auto', 'auto'],
-                body: [
-                    [
-                        { text: 'Time', style: 'tableHeader' },
-                        { text: 'Activity', style: 'tableHeader' },
-                        { text: 'Location', style: 'tableHeader' },
-                        { text: 'Dur', style: 'tableHeader' }
-                    ],
-                    ...day.timetable.map(block => [
-                        block.time,
-                        block.activityLabel + (block.memo ? `\n(${block.memo})` : ''),
-                        block.location || '',
-                        `${block.duration}m`
-                    ])
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 15]
-        };
+        htmlContent += `
+<div class="header">CALL SHEET - DAY ${day.dayNumber}</div>
+<div class="info-row">
+    <div class="info-left">
+        <div><strong>Project:</strong> ${docData.project.title}</div>
+        <div><strong>Director:</strong> ${docData.project.director || '-'}</div>
+        <div><strong>Producer:</strong> ${docData.project.producer || '-'}</div>
+    </div>
+    <div class="info-right">
+        <div><strong>Date:</strong> ${day.shootDay.date}</div>
+        <div><strong>Call Time:</strong> ${day.shootDay.callTime}</div>
+        <div><strong>Location:</strong> ${day.shootDay.mainLocation.name}</div>
+    </div>
+</div>
 
-        docDefinition.content.push(scheduleTable);
+${day.announcements ? `<div class="note">NOTE: ${day.announcements}</div>` : ''}
 
-        // Scenes Table
-        docDefinition.content.push({
-            text: 'Scenes',
-            style: 'subheader'
-        });
+<div class="section-title">Schedule</div>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60px">Time</th>
+            <th>Activity</th>
+            <th style="width: 150px">Location</th>
+            <th style="width: 60px">Dur</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${day.timetable.map(block => `
+        <tr>
+            <td>${block.time}</td>
+            <td>${block.activityLabel}${block.memo ? '<br><small>(' + block.memo + ')</small>' : ''}</td>
+            <td>${block.location || ''}</td>
+            <td>${block.duration}m</td>
+        </tr>
+        `).join('')}
+    </tbody>
+</table>
 
-        const scenesTable = {
-            table: {
-                headerRows: 1,
-                widths: ['auto', '*', 'auto', 'auto', 'auto', '*'],
-                body: [
-                    [
-                        { text: '#', style: 'tableHeader' },
-                        { text: 'Slugline', style: 'tableHeader' },
-                        { text: 'I/E', style: 'tableHeader' },
-                        { text: 'D/N', style: 'tableHeader' },
-                        { text: 'Pages', style: 'tableHeader' },
-                        { text: 'Cast', style: 'tableHeader' }
-                    ],
-                    ...day.scenes.map(scene => [
-                        scene.order.toString(),
-                        scene.sluglineTitle,
-                        scene.intExt,
-                        scene.dayNight,
-                        '1/8',
-                        scene.characters.join(', ')
-                    ])
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 15]
-        };
+<div class="section-title">Scenes</div>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 40px">#</th>
+            <th>Slugline</th>
+            <th style="width: 60px">I/E</th>
+            <th style="width: 60px">D/N</th>
+            <th style="width: 60px">Pages</th>
+            <th>Cast</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${day.scenes.map(scene => `
+        <tr>
+            <td>${scene.order}</td>
+            <td>${scene.sluglineTitle}</td>
+            <td>${scene.intExt}</td>
+            <td>${scene.dayNight}</td>
+            <td>1/8</td>
+            <td>${scene.characters.join(', ')}</td>
+        </tr>
+        `).join('')}
+    </tbody>
+</table>
 
-        docDefinition.content.push(scenesTable);
-
-        // Cast Call Table
-        docDefinition.content.push({
-            text: 'Cast Call',
-            style: 'subheader'
-        });
-
-        const castTable = {
-            table: {
-                headerRows: 1,
-                widths: ['*', '*', 'auto', '*'],
-                body: [
-                    [
-                        { text: 'Character', style: 'tableHeader' },
-                        { text: 'Actor', style: 'tableHeader' },
-                        { text: 'Call Time', style: 'tableHeader' },
-                        { text: 'Costume/Makeup', style: 'tableHeader' }
-                    ],
-                    ...day.castCalls.map(cast => [
-                        cast.characterName,
-                        cast.actorName || 'TBD',
-                        cast.callTime,
-                        'TBD'
-                    ])
-                ]
-            },
-            layout: 'noBorders'
-        };
-
-        docDefinition.content.push(castTable);
+<div class="section-title">Cast Call</div>
+<table>
+    <thead>
+        <tr>
+            <th>Character</th>
+            <th>Actor</th>
+            <th style="width: 100px">Call Time</th>
+            <th>Costume/Makeup</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${day.castCalls.map(cast => `
+        <tr>
+            <td>${cast.characterName}</td>
+            <td>${cast.actorName || 'TBD'}</td>
+            <td>${cast.callTime}</td>
+            <td>TBD</td>
+        </tr>
+        `).join('')}
+    </tbody>
+</table>
+`;
     });
 
-    // Generate and download PDF
-    const filename = `CallSheet_${docData.project.title.replace(/\s+/g, '_')}_${docData.days[0].date}.pdf`;
-    pdfMake.createPdf(docDefinition).download(filename);
+    htmlContent += `
+</body>
+</html>
+`;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    setTimeout(() => {
+        printWindow.print();
+    }, 250);
 }
 
 // Shooting Schedule PDF (일촬표)
 export function generateShootingSchedulePDF(docData: ProductionDocModel) {
-    const docDefinition: any = {
-        content: [],
-        defaultStyle: {
-            font: 'Roboto',
-            fontSize: 9
-        },
-        styles: {
-            header: {
-                fontSize: 16,
-                bold: true,
-                alignment: 'center',
-                margin: [0, 0, 0, 10]
-            },
-            dayHeader: {
-                fontSize: 12,
-                bold: true,
-                margin: [0, 15, 0, 5],
-                fillColor: '#e8e8e8'
-            },
-            tableHeader: {
-                bold: true,
-                fontSize: 10,
-                color: 'white',
-                fillColor: '#2c3e50'
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    let htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Shooting Schedule</title>
+    <style>
+        @media print {
+            @page { 
+                margin: 1cm;
+                size: landscape;
             }
-        },
-        pageMargins: [30, 50, 30, 50],
-        pageOrientation: 'landscape'
-    };
+            body { margin: 0; }
+            .page-break { page-break-before: always; }
+        }
+        body {
+            font-family: 'Malgun Gothic', '맑은 고딕', Arial, sans-serif;
+            font-size: 9pt;
+            line-height: 1.3;
+        }
+        .header {
+            text-align: center;
+            font-size: 16pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .day-header {
+            background: #e8e8e8;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 11pt;
+            margin: 15px 0 8px 0;
+        }
+        .section-title {
+            font-size: 11pt;
+            font-weight: bold;
+            margin: 12px 0 6px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 6px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 9pt;
+        }
+        td {
+            border-bottom: 1px solid #ddd;
+            padding: 4px 6px;
+            font-size: 8pt;
+        }
+        tr:nth-child(even) {
+            background: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+<div class="header">SHOOTING SCHEDULE - ${docData.project.title}</div>
+`;
 
-    // Overall Header
-    docDefinition.content.push({
-        text: `SHOOTING SCHEDULE - ${docData.project.title}`,
-        style: 'header'
+    docData.days.forEach((day, index) => {
+        if (index > 0) htmlContent += '<div class="page-break"></div>';
+
+        htmlContent += `
+<div class="day-header">Day ${day.dayNumber} [${day.date}] | Call: ${day.shootDay.callTime} | Loc: ${day.shootDay.mainLocation.name}</div>
+
+<table>
+    <thead>
+        <tr>
+            <th style="width: 50px">Order</th>
+            <th>Scene / Slugline</th>
+            <th style="width: 70px">INT/EXT</th>
+            <th style="width: 80px">DAY/NIGHT</th>
+            <th style="width: 200px">Cast</th>
+            <th>Synopsis/Notes</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${day.scenes.map(scene => `
+        <tr>
+            <td>${scene.order}</td>
+            <td>${scene.sceneNumber}. ${scene.sluglineTitle}</td>
+            <td>${scene.intExt}</td>
+            <td>${scene.dayNight}</td>
+            <td>${scene.characters.join(', ')}</td>
+            <td>${scene.synopsis || '-'}</td>
+        </tr>
+        `).join('')}
+    </tbody>
+</table>
+
+<div class="section-title">Detailed Schedule (세부 일정)</div>
+<table>
+    <thead>
+        <tr>
+            <th style="width: 60px">Time</th>
+            <th>Activity</th>
+            <th style="width: 150px">Location</th>
+            <th style="width: 70px">Duration</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${day.timetable.map(block => `
+        <tr>
+            <td>${block.time}</td>
+            <td>${block.activityLabel}${block.memo ? '<br><small>(' + block.memo + ')</small>' : ''}</td>
+            <td>${block.location || ''}</td>
+            <td>${block.duration}m</td>
+        </tr>
+        `).join('')}
+    </tbody>
+</table>
+
+${day.castCalls.length > 0 ? `
+<div class="section-title">CAST CALL TIMES</div>
+<table>
+    <thead>
+        <tr>
+            <th>Character</th>
+            <th>Actor</th>
+            <th style="width: 100px">Call Time</th>
+        </tr>
+    </thead>
+    <tbody>
+        ${day.castCalls.map(cast => `
+        <tr>
+            <td>${cast.characterName}</td>
+            <td>${cast.actorName || 'TBD'}</td>
+            <td>${cast.callTime}</td>
+        </tr>
+        `).join('')}
+    </tbody>
+</table>
+` : ''}
+`;
     });
 
-    // Generate content for each day
-    docData.days.forEach((day, dayIndex) => {
-        if (dayIndex > 0) {
-            docDefinition.content.push({ text: '', pageBreak: 'before' });
-        }
+    htmlContent += `
+</body>
+</html>
+`;
 
-        // Day Header
-        docDefinition.content.push({
-            table: {
-                widths: ['*'],
-                body: [[{
-                    text: `Day ${day.dayNumber} [${day.date}] | Call: ${day.shootDay.callTime} | Loc: ${day.shootDay.mainLocation.name}`,
-                    style: 'dayHeader'
-                }]]
-            },
-            layout: 'noBorders'
-        });
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
 
-        // Scenes Table
-        const scenesTable = {
-            table: {
-                headerRows: 1,
-                widths: ['auto', '*', 'auto', 'auto', '*', '*'],
-                body: [
-                    [
-                        { text: 'Order', style: 'tableHeader' },
-                        { text: 'Scene / Slugline', style: 'tableHeader' },
-                        { text: 'INT/EXT', style: 'tableHeader' },
-                        { text: 'DAY/NIGHT', style: 'tableHeader' },
-                        { text: 'Cast', style: 'tableHeader' },
-                        { text: 'Synopsis/Notes', style: 'tableHeader' }
-                    ],
-                    ...day.scenes.map(scene => [
-                        scene.order.toString(),
-                        `${scene.sceneNumber}. ${scene.sluglineTitle}`,
-                        scene.intExt,
-                        scene.dayNight,
-                        scene.characters.join(', '),
-                        scene.synopsis || '-'
-                    ])
-                ]
-            },
-            layout: {
-                fillColor: (rowIndex: number) => (rowIndex === 0 ? '#2c3e50' : (rowIndex % 2 === 0 ? '#f5f5f5' : null))
-            },
-            margin: [0, 5, 0, 15]
-        };
-
-        docDefinition.content.push(scenesTable);
-
-        // Timetable
-        docDefinition.content.push({
-            text: 'Detailed Schedule (세부 일정)',
-            fontSize: 11,
-            bold: true,
-            margin: [0, 0, 0, 5]
-        });
-
-        const timetableTable = {
-            table: {
-                headerRows: 1,
-                widths: ['auto', '*', 'auto', 'auto'],
-                body: [
-                    [
-                        { text: 'Time', style: 'tableHeader' },
-                        { text: 'Activity', style: 'tableHeader' },
-                        { text: 'Location', style: 'tableHeader' },
-                        { text: 'Duration', style: 'tableHeader' }
-                    ],
-                    ...day.timetable.map(block => [
-                        block.time,
-                        block.activityLabel + (block.memo ? `\n(${block.memo})` : ''),
-                        block.location || '',
-                        `${block.duration}m`
-                    ])
-                ]
-            },
-            layout: 'lightHorizontalLines',
-            margin: [0, 0, 0, 15]
-        };
-
-        docDefinition.content.push(timetableTable);
-
-        // Cast Call Times
-        if (day.castCalls.length > 0) {
-            docDefinition.content.push({
-                text: 'CAST CALL TIMES',
-                fontSize: 11,
-                bold: true,
-                margin: [0, 0, 0, 5]
-            });
-
-            const castTable = {
-                table: {
-                    headerRows: 1,
-                    widths: ['*', '*', 'auto'],
-                    body: [
-                        [
-                            { text: 'Character', style: 'tableHeader' },
-                            { text: 'Actor', style: 'tableHeader' },
-                            { text: 'Call Time', style: 'tableHeader' }
-                        ],
-                        ...day.castCalls.map(cast => [
-                            cast.characterName,
-                            cast.actorName || 'TBD',
-                            cast.callTime
-                        ])
-                    ]
-                },
-                layout: 'lightHorizontalLines'
-            };
-
-            docDefinition.content.push(castTable);
-        }
-    });
-
-    // Generate and download PDF
-    const filename = `ShootingSchedule_${docData.project.title.replace(/\s+/g, '_')}_${docData.days[0].date}.pdf`;
-    pdfMake.createPdf(docDefinition).download(filename);
+    setTimeout(() => {
+        printWindow.print();
+    }, 250);
 }
