@@ -24,6 +24,7 @@ model User {
   credits       MonthlyCredit[]
   waitlists     Waitlist[]
   events        ExperimentEvent[]
+  projects      Project[]
 }
 
 model MonthlyCredit {
