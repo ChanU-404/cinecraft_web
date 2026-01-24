@@ -314,8 +314,8 @@ export default function CineCraftWorkspace() {
     );
   }
 
-  if (status !== "authenticated" && !guestEntered) {
-    return <LoginView onGuestEnter={() => setGuestEntered(true)} />;
+  if (status !== "authenticated") {
+    return <LoginView />;
   }
 
   // Guest Limitation: Truncate Scenes
