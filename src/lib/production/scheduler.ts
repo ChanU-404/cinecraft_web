@@ -74,6 +74,8 @@ export interface ScheduleOptions {
     callTime: string;
     maxHours?: number;
     lunchDuration?: number;
+    days?: number;
+    location?: string;
 }
 
 export function generateDraftSchedule(
@@ -81,7 +83,7 @@ export function generateDraftSchedule(
     scenes: Scene[],
     options: ScheduleOptions = { date: new Date().toISOString().split('T')[0], callTime: "07:00" }
 ): ProductionDocModel {
-    const { date, callTime, lunchDuration = 60 } = options;
+    const { date, callTime, lunchDuration = 60, location = "" } = options;
 
     // 1. Extract Scenes
     const prodScenes: ProductionScene[] = scenes.map((s, i) => extractSceneData(s, i));
@@ -110,11 +112,11 @@ export function generateDraftSchedule(
     let currentTime = timeToMinutes(callTime);
 
     // 3.1 Crew Call
-    timetable.push(createTimeBlock("Crew Call", currentTime, 0));
+    timetable.push(createTimeBlock("스태프 집합 (Crew Call)", currentTime, 0));
 
     // 3.2 Shoot Start (e.g. +60 mins prep)
     currentTime += 60;
-    timetable.push(createTimeBlock("Shooting Start", currentTime, 60));
+    timetable.push(createTimeBlock("촬영 시작 (Shooting Start)", currentTime, 60));
 
     // 3.3 Add Scenes
     let accumulatedTime = 0;
@@ -123,7 +125,7 @@ export function generateDraftSchedule(
     prodScenes.forEach(scene => {
         // Company Move check
         if (currentLocation && currentLocation !== scene.locationName) {
-            timetable.push(createTimeBlock("Company Move", currentTime, 45, "Move to " + scene.locationName));
+            timetable.push(createTimeBlock("이동 (Company Move)", currentTime, 45, "Move to " + scene.locationName));
             currentTime += 45;
             accumulatedTime += 45;
         }
@@ -151,7 +153,7 @@ export function generateDraftSchedule(
     });
 
     // 3.4 Wrap
-    timetable.push(createTimeBlock("Wrap / Estimated End", currentTime, 30));
+    timetable.push(createTimeBlock("촬영 종료 (Wrap / Estimated End)", currentTime, 30));
     currentTime += 30;
 
     // 4. Cast Calls (Simple summary)
@@ -179,12 +181,12 @@ export function generateDraftSchedule(
             callTime,
             shootStartTime: minutesToTime(timeToMinutes(callTime) + 60),
             estimatedWrapTime: minutesToTime(currentTime),
-            mainLocation: { name: prodScenes[0]?.locationName || "TBD" }
+            mainLocation: { name: location || (prodScenes[0]?.locationName || "TBD") }
         },
         scenes: prodScenes,
         timetable,
         castCalls,
-        announcements: "Safety first! Please keep the set quiet."
+        announcements: "안전 제일! 정숙 유지 부탁드립니다. (Safety first!)"
     };
 }
 
