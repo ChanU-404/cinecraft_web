@@ -155,7 +155,7 @@ ${day.announcements ? `<div class="note">NOTE: ${day.announcements}</div>` : ''}
             <td>${cast.characterName}</td>
             <td>${cast.actorName || 'TBD'}</td>
             <td>${cast.callTime}</td>
-            <td>TBD</td>
+            <td>${(cast.costume || '') + (cast.makeup ? ' / ' + cast.makeup : '') || 'TBD'}</td>
         </tr>
         `).join('')}
     </tbody>
@@ -307,6 +307,7 @@ ${day.castCalls.length > 0 ? `
             <th>Character</th>
             <th>Actor</th>
             <th style="width: 100px">Call Time</th>
+            <th>Costume/Makeup</th>
         </tr>
     </thead>
     <tbody>
@@ -315,6 +316,7 @@ ${day.castCalls.length > 0 ? `
             <td>${cast.characterName}</td>
             <td>${cast.actorName || 'TBD'}</td>
             <td>${cast.callTime}</td>
+            <td>${(cast.costume || "") + (cast.makeup ? " / " + cast.makeup : "") || "TBD"}</td>
         </tr>
         `).join('')}
     </tbody>

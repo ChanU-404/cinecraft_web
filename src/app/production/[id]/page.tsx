@@ -233,6 +233,77 @@ export default function ProductionPage() {
                                             </table>
                                         </div>
                                     </div>
+
+                                    {/* Cast Call Editor */}
+                                    <div className="bg-[#1e293b] rounded-xl border border-[#334155] overflow-hidden">
+                                        <div className="p-4 border-b border-[#334155] bg-[#0f172a]">
+                                            <h3 className="font-bold">Cast Call (Day {activeDay.dayNumber})</h3>
+                                            <p className="text-xs text-gray-400 mt-1">Edit actor names, costume, and makeup notes</p>
+                                        </div>
+                                        <div className="p-4 space-y-3">
+                                            {activeDay.castCalls.map((cast, idx) => (
+                                                <div key={idx} className="bg-[#0b0f17] rounded-lg p-4 border border-[#334155]">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="text-xs text-gray-400 font-bold uppercase mb-1 block">
+                                                                Character
+                                                            </label>
+                                                            <div className="text-white font-bold">{cast.characterName}</div>
+                                                            <div className="text-xs text-gray-500 mt-1">Call: {cast.callTime}</div>
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs text-gray-400 font-bold uppercase mb-1 block">
+                                                                Actor Name
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={cast.actorName || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = { ...docData };
+                                                                    updated.days[activeDayIndex].castCalls[idx].actorName = e.target.value;
+                                                                    setDocData(updated);
+                                                                }}
+                                                                placeholder="배우 이름 입력"
+                                                                className="w-full bg-[#1e293b] border border-[#334155] rounded px-3 py-2 text-white text-sm focus:border-[#ff365c] focus:outline-none"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs text-gray-400 font-bold uppercase mb-1 block">
+                                                                Costume Notes
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={cast.costume || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = { ...docData };
+                                                                    updated.days[activeDayIndex].castCalls[idx].costume = e.target.value;
+                                                                    setDocData(updated);
+                                                                }}
+                                                                placeholder="의상 특이사항"
+                                                                className="w-full bg-[#1e293b] border border-[#334155] rounded px-3 py-2 text-white text-sm focus:border-[#ff365c] focus:outline-none"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-xs text-gray-400 font-bold uppercase mb-1 block">
+                                                                Makeup Notes
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={cast.makeup || ''}
+                                                                onChange={(e) => {
+                                                                    const updated = { ...docData };
+                                                                    updated.days[activeDayIndex].castCalls[idx].makeup = e.target.value;
+                                                                    setDocData(updated);
+                                                                }}
+                                                                placeholder="분장 특이사항"
+                                                                className="w-full bg-[#1e293b] border border-[#334155] rounded px-3 py-2 text-white text-sm focus:border-[#ff365c] focus:outline-none"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </>
                             )}
                         </div>
