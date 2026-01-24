@@ -29,30 +29,30 @@ export function LoginView() {
 
                     <div className="space-y-4">
                         <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight">
-                            Visualize Your Screenplay <br />
+                            당신의 시나리오를 <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#ff365c] to-[#ff8f00]">
-                                In Seconds, Not Days.
+                                몇 초 만에 시각화하세요.
                             </span>
                         </h2>
                         <p className="text-[#94a3b8] text-lg leading-relaxed">
-                            Transform PDF scripts into AI-generated storyboards, shooting schedules, and detailed production shots instantly.
+                            PDF 시나리오를 AI 기반 스토리보드, 촬영 스케줄, 상세한 프로덕션 샷으로 즉시 변환합니다.
                         </p>
                     </div>
 
                     <div className="flex gap-4 items-center justify-center md:justify-start text-sm font-bold text-[#64748b] tracking-wider uppercase">
-                        <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#fbbf24]" /> AI Powered</span>
+                        <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#fbbf24]" /> AI 기반</span>
                         <span className="w-1 h-1 bg-[#334155] rounded-full" />
-                        <span>Secure</span>
+                        <span>보안</span>
                         <span className="w-1 h-1 bg-[#334155] rounded-full" />
-                        <span>Production Ready</span>
+                        <span>프로덕션 준비</span>
                     </div>
                 </div>
 
                 {/* Right Side: Login Card */}
                 <div className="bg-[#111827]/50 backdrop-blur-xl border border-[#1f2937] p-8 md:p-12 rounded-3xl shadow-2xl flex flex-col gap-8">
                     <div className="text-center">
-                        <h3 className="text-white font-bold text-xl mb-2">Welcome Back, Director.</h3>
-                        <p className="text-[#94a3b8] text-sm">Sign in with your Google account to continue.</p>
+                        <h3 className="text-white font-bold text-xl mb-2">환영합니다, 감독님.</h3>
+                        <p className="text-[#94a3b8] text-sm">Google 계정으로 로그인하여 계속하세요.</p>
                     </div>
 
                     <button
@@ -65,7 +65,7 @@ export function LoginView() {
                             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                         </svg>
-                        Continue with Google
+                        Google로 계속하기
                     </button>
 
                     {process.env.NODE_ENV === 'development' && (
@@ -73,7 +73,7 @@ export function LoginView() {
                             onClick={() => signIn("credentials")}
                             className="w-full bg-[#1e293b] text-[#94a3b8] hover:bg-[#334155] hover:text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 text-sm border border-[#334155] border-dashed"
                         >
-                            <span>🛠️ Dev Mode: Mock Login</span>
+                            <span>🛠️ 개발 모드: 목업 로그인</span>
                         </button>
                     )}
                 </div>
