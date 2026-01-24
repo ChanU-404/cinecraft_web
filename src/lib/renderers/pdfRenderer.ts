@@ -2,8 +2,8 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import { ProductionDocModel } from '../production/types';
 
-// Register fonts
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+// Register fonts - use type assertion to fix type mismatch
+(pdfMake as any).vfs = pdfFonts;
 
 export function generateCallSheetPDF(docData: ProductionDocModel) {
     const docDefinition: any = {
