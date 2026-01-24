@@ -174,12 +174,14 @@ export function ScreenplayProvider({ children }: { children: ReactNode }) {
     };
 
     const saveCurrentProject = async (title?: string, specificScenes?: Scene[], specificGlobalContext?: string) => {
-        if (!currentProjectId) {
-            console.error("No current project ID");
-            return;
+        let idToSave = currentProjectId;
+
+        // Auto-create ID if missing
+        if (!idToSave) {
+            idToSave = crypto.randomUUID();
+            setCurrentProjectId(idToSave);
         }
 
-        const idToSave = currentProjectId;
         const scenesToSave = specificScenes || scenes;
         const contextToSave = specificGlobalContext !== undefined ? specificGlobalContext : projectGlobalContext;
 

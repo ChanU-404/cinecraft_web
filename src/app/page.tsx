@@ -21,7 +21,8 @@ import {
   FileSpreadsheet,
   LogOut,
   Download,
-  Save
+  Save,
+  Plus
 } from 'lucide-react';
 import { exportStoryboardPDF } from '@/utils/pdfExport';
 import { useScreenplay } from '@/context/ScreenplayContext';
@@ -550,6 +551,13 @@ export default function CineCraftWorkspace() {
                 <FolderOpen className="w-3 h-3" />
                 <span>{t('workspace', 'projectLibrary')}</span>
               </div>
+              <button
+                onClick={() => createNewProject()}
+                className="text-[#94a3b8] hover:text-[#ff365c] transition-colors p-1 rounded hover:bg-[#1f2937]"
+                title="New Project"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="max-h-[200px] overflow-y-auto custom-scrollbar space-y-1">
