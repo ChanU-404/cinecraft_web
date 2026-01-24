@@ -52,10 +52,16 @@ export default function ProductionPage() {
         setIsLoading(true);
         // Simulate "Processing" time
         setTimeout(() => {
-            const draft = generateDraftSchedule(project, scenes, options);
-            setDocData(draft);
-            setActiveDayIndex(0);
-            setIsLoading(false);
+            try {
+                const draft = generateDraftSchedule(project, scenes, options);
+                setDocData(draft);
+                setActiveDayIndex(0);
+            } catch (error) {
+                console.error("Failed to generate schedule:", error);
+                alert("Failed to generate schedule. Please try again with different settings.");
+            } finally {
+                setIsLoading(false);
+            }
         }, 800);
     };
 

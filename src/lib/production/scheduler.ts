@@ -1,5 +1,5 @@
 import { Project, Scene } from '@/context/ScreenplayContext';
-import { ProductionDocModel, ProductionDocSchema, ProductionScene, TimeBlock, DailySchedule } from './types';
+import { ProductionDocModel, ProductionDocSchema, ProductionScene, TimeBlock, DailySchedule, SchedulerOptions } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Extractor ---
@@ -48,44 +48,30 @@ export function extractSceneData(scene: Scene, index: number): ProductionScene {
     // Adjust for complexity
     if (flags.stunts) estimatedDuration += 30;
     if (flags.vfx) estimatedDuration += 20;
+    if (flags.extras) estimatedDuration += 15;
 
     return {
-        id: scene.id,
+        id: uuidv4(),
         order: index + 1,
-        sceneNumber: String(index + 1), // Or parse from slugline if available
         sluglineTitle: scene.location,
-        synopsis: scene.summary || "No synopsis available",
+        locationName: scene.location.split('-')[0].trim(), // "INT. PIZZA" -> "INT. PIZZA"
         intExt,
         dayNight,
-        locationName: scene.location.split('-')[0].replace(/INT\.|EXT\./, '').trim(),
-        cutCount: shotCount,
         estimatedDuration,
         characters,
-        flags: { ...flags, mos: false },
-        notes: ""
+        flags,
+        status: 'not-started'
     };
 }
 
-// --- Scheduler (Heuristic) ---
-
-// New options interface
-export interface ScheduleOptions {
-    date: string;
-    callTime: string;
-    maxHours?: number;
-    lunchDuration?: number;
-    days?: number;
-    locationMap?: Record<string, string>;
-}
+// --- Main Scheduler ---
 
 export function generateDraftSchedule(
     project: Project,
     scenes: Scene[],
-    options: ScheduleOptions = { date: new Date().toISOString().split('T')[0], callTime: "07:00" }
+    options: SchedulerOptions
 ): ProductionDocModel {
-    const { date: startDate, callTime, lunchDuration = 60, maxHours = 12, locationMap = {} } = options;
-    const maxMinutesPerDay = maxHours * 60;
-    const callTimeMinutes = timeToMinutes(callTime);
+    const { dailyConfigs, lunchDuration, locationMap = {} } = options;
 
     // 1. Extract Scenes & Map Locations
     const prodScenes: ProductionScene[] = scenes.map((s, i) => {
@@ -111,15 +97,21 @@ export function generateDraftSchedule(
     // Re-assign order based on shooting order
     prodScenes.forEach((s, i) => s.order = i + 1);
 
-    // 3. Multi-Day Generation Loop
+    // 3. Multi-Day Generation Loop using dailyConfigs
     const days: DailySchedule[] = [];
     const remainingScenes = [...prodScenes];
 
-    let currentDayNum = 1;
-    let currentDateStr = startDate;
+    let dayIndex = 0;
 
-    // Safety brake for while loop
-    while (remainingScenes.length > 0 && currentDayNum <= (options.days || 10)) {
+    // Process each day config
+    for (const config of dailyConfigs) {
+        if (remainingScenes.length === 0) break;
+
+        const dayNumber = dayIndex + 1;
+        const callTime = config.callTime;
+        const maxMinutes = config.maxHours * 60;
+        const callTimeMinutes = timeToMinutes(callTime);
+
         const dayScenes: ProductionScene[] = [];
         const timetable: TimeBlock[] = [];
         let currentTime = callTimeMinutes;
@@ -148,102 +140,116 @@ export function generateDraftSchedule(
             }
 
             // Estimate total time for this scene inclusion
-            const totalCost = moveTime + scene.estimatedDuration;
+            const sceneWithOverhead = scene.estimatedDuration + moveTime;
 
-            // Check if fits in day
-            if (dayDuration + totalCost > maxMinutesPerDay) {
-                // Determine if we should split or push to next day.
-                // For MVP, just push to next day unless it's the very first scene of day (then force it or Error).
-                if (dayScenes.length === 0) {
-                    // Force at least one scene per day to prevent infinite loop if scene > maxHours
-                    // Fall through to add
+            // Check for lunch insertion
+            if (!lunchTaken && dayDuration > 3 * 60) {
+                // Insert lunch
+                if (dayDuration + lunchDuration + sceneWithOverhead <= maxMinutes) {
+                    timetable.push(createTimeBlock("점심 식사 (Lunch Break)", currentTime, lunchDuration));
+                    currentTime += lunchDuration;
+                    dayDuration += lunchDuration;
+                    lunchTaken = true;
                 } else {
-                    break; // End this day
+                    // No space for lunch + scene, wrap day
+                    break;
                 }
             }
 
-            // Add Move Block
+            // Check if scene fits
+            if (dayDuration + sceneWithOverhead > maxMinutes) {
+                break; // Cannot fit this scene, end day
+            }
+
+            // Add Move if needed
             if (moveTime > 0) {
-                timetable.push(createTimeBlock("이동 (Company Move)", currentTime, moveTime, "Move to " + scene.locationName));
+                timetable.push(createTimeBlock(`이동 (Move to ${scene.locationName})`, currentTime, moveTime));
                 currentTime += moveTime;
                 dayDuration += moveTime;
             }
-            currentLocation = scene.locationName;
 
-            // Add Scene Block
+            // Add Scene
             timetable.push({
                 id: uuidv4(),
                 seq: timetable.length + 1,
                 time: minutesToTime(currentTime),
-                activityLabel: `Scene ${scene.sceneNumber}: ${scene.sluglineTitle}`,
-                location: scene.locationName,
+                activityLabel: `Scene ${scene.order}: ${scene.sluglineTitle}`,
                 type: 'scene',
                 duration: scene.estimatedDuration,
+                location: scene.locationName,
                 refSceneId: scene.id,
-                memo: scene.synopsis.substring(0, 50) + "..."
+                memo: `${scene.intExt}. ${scene.locationName} - ${scene.dayNight} | Cast: ${scene.characters.join(', ')}`
             });
 
-            dayScenes.push(scene);
             currentTime += scene.estimatedDuration;
             dayDuration += scene.estimatedDuration;
+            currentLocation = scene.locationName;
 
-            // Auto-Lunch: After 4 hours of shooting (240 mins) or near noon?
-            // Simple logic: If dayDuration > 240 (4h) and not taken
-            if (dayDuration > 240 && !lunchTaken) {
-                timetable.push(createTimeBlock("점심 식사 (Lunch)", currentTime, lunchDuration));
-                currentTime += lunchDuration;
-                dayDuration += lunchDuration;
-                lunchTaken = true;
-            }
+            dayScenes.push(scene);
+            remainingScenes.splice(i, 1); // Remove from remaining
+        }
 
-            // Remove from remaining
-            remainingScenes.splice(i, 1);
-            // Don't increment i because array shifted
+        if (dayScenes.length === 0) {
+            // No scenes packed for this day, skip
+            dayIndex++;
+            continue;
         }
 
         // 3.4 Wrap
-        timetable.push(createTimeBlock("촬영 종료 (Wrap / Estimated End)", currentTime, 30));
+        timetable.push(createTimeBlock("촬영 종료 (Wrap)", currentTime, 30));
+        currentTime += 30;
+        const wrapTime = minutesToTime(currentTime);
 
-        // 3.5 Cast Calls for Day
-        const uniqueActors = Array.from(new Set(dayScenes.flatMap(s => s.characters)));
-        const castCalls = uniqueActors.map(name => ({
-            characterName: name,
-            callTime: callTime, // Just default to call time
+        // 4. Cast Calls
+        const uniqueCharacters = Array.from(new Set(dayScenes.flatMap(s => s.characters)));
+        const castCalls = uniqueCharacters.map(char => ({
+            characterName: char,
+            actorName: "",
+            callTime: callTime,
             costume: "",
-            makeup: ""
+            makeup: "",
+            props: ""
         }));
 
-        // Push Day
+        // 5. Determine Main Location
+        const locationCounts: Record<string, number> = {};
+        dayScenes.forEach(s => {
+            locationCounts[s.locationName] = (locationCounts[s.locationName] || 0) + 1;
+        });
+        const mainLocationName = Object.entries(locationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "미정";
+
+        // 6. Day Object
         days.push({
             id: uuidv4(),
-            date: currentDateStr,
-            dayNumber: currentDayNum,
+            date: config.date,
+            dayNumber,
             shootDay: {
-                id: uuidv4(),
-                date: currentDateStr,
-                callTime,
-                shootStartTime: minutesToTime(callTimeMinutes + 60),
-                estimatedWrapTime: minutesToTime(currentTime),
-                mainLocation: { name: dayScenes[0]?.locationName || "TBD" }
+                date: config.date,
+                callTime: callTime,
+                wrapTime: wrapTime,
+                mainLocation: {
+                    name: mainLocationName,
+                    address: ""
+                },
+                weather: { forecast: "맑음 (Sunny)", tempRange: "15-25°C" },
+                crew: {
+                    director: project.director || "미정",
+                    dop: "",
+                    pd: "",
+                    gaffer: "",
+                    ad: ""
+                }
             },
-            scenes: dayScenes,
             timetable,
             castCalls,
-            announcements: "안전 제일! 정숙 유지 부탁드립니다. (Safety first!)"
+            scenes: dayScenes,
+            announcements: `Day ${dayNumber} 촬영 세부 사항`
         });
 
-        // Prepare next day
-        currentDayNum++;
-        const dateObj = new Date(currentDateStr);
-        dateObj.setDate(dateObj.getDate() + 1);
-        currentDateStr = dateObj.toISOString().split('T')[0];
+        dayIndex++;
     }
 
-    // Force at least one day if empty (shouldnt happen)
-    if (days.length === 0) {
-        // Create empty placeholder day...
-    }
-
+    // Build final document
     return {
         id: uuidv4(),
         projectId: project.id,
@@ -251,34 +257,35 @@ export function generateDraftSchedule(
         lastModified: Date.now(),
         project: {
             title: project.title,
-            director: "My Director",
-            producer: "My Producer"
+            episodeNumber: "",
+            director: project.director || "",
+            producer: ""
         },
-        days: days
+        days
     };
 }
 
-// --- Helpers ---
-
-function timeToMinutes(time: string): number {
-    const [h, m] = time.split(':').map(Number);
+// Helper functions
+function timeToMinutes(timeStr: string): number {
+    const [h, m] = timeStr.split(':').map(Number);
     return h * 60 + m;
 }
 
 function minutesToTime(minutes: number): string {
-    const h = Math.floor(minutes / 60) % 24;
+    const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-function createTimeBlock(label: string, timeMin: number, duration: number, memo?: string): TimeBlock {
+function createTimeBlock(label: string, timeMinutes: number, duration: number): TimeBlock {
     return {
         id: uuidv4(),
-        seq: 0, // Assigned later if needed
-        time: minutesToTime(timeMin),
+        seq: 0, // Will be updated in final pass
+        time: minutesToTime(timeMinutes),
         activityLabel: label,
         type: 'other',
         duration,
-        memo
+        location: "",
+        memo: ""
     };
 }

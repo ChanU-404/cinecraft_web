@@ -94,3 +94,17 @@ export type ProductionScene = z.infer<typeof ProductionSceneSchema>;
 export type TimeBlock = z.infer<typeof TimeBlockSchema>;
 export type CastCall = z.infer<typeof CastCallSchema>;
 export type DailySchedule = z.infer<typeof DailyScheduleSchema>;
+
+// --- Scheduler Options ---
+
+export interface DailyConfig {
+    date: string;
+    callTime: string;
+    maxHours: number;
+}
+
+export interface SchedulerOptions {
+    dailyConfigs: DailyConfig[];
+    lunchDuration: number; // minutes
+    locationMap?: Record<string, string>;
+}
