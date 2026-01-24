@@ -18,6 +18,7 @@ import {
   FolderOpen,
   Pencil,
   ClipboardList,
+  FileSpreadsheet,
   LogOut,
   Download
 } from 'lucide-react';
@@ -33,10 +34,13 @@ import { LoginView } from '@/components/LoginView';
 import { useSubscription } from '@/context/SubscriptionContext';
 import UpgradeIntentModal from '@/components/subscription/UpgradeIntentModal';
 import { useLanguage } from '@/context/LanguageContext';
+
 import { Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function CineCraftWorkspace() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const {
     scenes,
     setScenes,
@@ -616,6 +620,20 @@ export default function CineCraftWorkspace() {
           </div>
         )
         }
+
+        {/* New Feature: Production Link */}
+        <div className="p-4 border-t border-[#1f2937]">
+          <button
+            onClick={() => {
+              if (currentProjectId) router.push(`/production/${currentProjectId}`);
+              else alert("Please select a project first.");
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 text-[#94a3b8] hover:bg-[#1f2937] hover:text-white rounded-xl transition-all group"
+          >
+            <FileSpreadsheet className="w-5 h-5 text-gray-500 group-hover:text-amber-500 transition-colors" />
+            <span className="font-medium">Production Docs</span>
+          </button>
+        </div>
 
 
         <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937]">
