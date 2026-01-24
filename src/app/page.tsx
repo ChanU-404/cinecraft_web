@@ -20,7 +20,8 @@ import {
   ClipboardList,
   FileSpreadsheet,
   LogOut,
-  Download
+  Download,
+  Save
 } from 'lucide-react';
 import { exportStoryboardPDF } from '@/utils/pdfExport';
 import { useScreenplay } from '@/context/ScreenplayContext';
@@ -621,23 +622,16 @@ export default function CineCraftWorkspace() {
         )
         }
 
-        {/* New Feature: Production Link */}
-        <div className="p-4 border-t border-[#1f2937]">
+        <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937] space-y-3">
+          {/* Manual Save Button */}
           <button
-            onClick={() => {
-              if (currentProjectId) router.push(`/production/${currentProjectId}`);
-              else alert("Please select a project first.");
-            }}
-            className="w-full flex items-center gap-3 px-4 py-3 text-[#94a3b8] hover:bg-[#1f2937] hover:text-white rounded-xl transition-all group"
+            onClick={() => saveCurrentProject()}
+            disabled={isSaving}
+            className="w-full flex items-center justify-center gap-2 bg-[#1f2937] hover:bg-[#334155] text-white py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all"
           >
-            <FileSpreadsheet className="w-5 h-5 text-gray-500 group-hover:text-amber-500 transition-colors" />
-            <span className="font-medium">Production Docs</span>
+            {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+            <span>{isSaving ? 'Saving...' : 'Save Library'}</span>
           </button>
-        </div>
-
-
-        <div className="p-4 bg-[#0b0f17] border-t border-[#1f2937]">
-          {/* Save Project Button Removed */}
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -672,7 +666,7 @@ export default function CineCraftWorkspace() {
 
           <div className="flex items-center gap-6">
 
-            {/* Project Level Pre-Prod Trigger */}
+            {/* Project Level Buttons */}
             {scenes.length > 0 && (
               <div className="flex items-center gap-3">
                 <button
@@ -685,11 +679,13 @@ export default function CineCraftWorkspace() {
                 </button>
 
                 <button
-                  onClick={handleStartPreProd}
-                  className={`flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
+                  onClick={() => {
+                    if (currentProjectId) router.push(`/production/${currentProjectId}`);
+                  }}
+                  className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
                 >
-                  <ClipboardList className="w-4 h-4" />
-                  <span>{t('workspace', 'startPreProd')}</span>
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Production Docs</span>
                 </button>
               </div>
             )}
