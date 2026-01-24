@@ -39,10 +39,6 @@ export function LoginView() {
                         </p>
                     </div>
 
-                    <div className="flex gap-4 items-center justify-center md:justify-start text-sm font-bold text-[#64748b] tracking-wider uppercase">
-                        <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#fbbf24]" /> AI 기반</span>
-                        <span>프로덕션 준비</span>
-                    </div>
                 </div>
 
                 {/* Right Side: Login Card */}
