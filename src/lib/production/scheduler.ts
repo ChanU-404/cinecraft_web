@@ -53,14 +53,16 @@ export function extractSceneData(scene: Scene, index: number): ProductionScene {
     return {
         id: uuidv4(),
         order: index + 1,
+        sceneNumber: `${index + 1}`,
         sluglineTitle: scene.location,
-        locationName: scene.location.split('-')[0].trim(), // "INT. PIZZA" -> "INT. PIZZA"
+        synopsis: scene.script_blocks.find(b => b.type === 'action')?.text.substring(0, 100) || "",
+        locationName: scene.location.split('-')[0].trim(),
         intExt,
         dayNight,
+        cutCount: scene.shots?.length || 0,
         estimatedDuration,
         characters,
-        flags,
-        status: 'not-started'
+        flags
     };
 }
 
@@ -224,21 +226,16 @@ export function generateDraftSchedule(
             date: config.date,
             dayNumber,
             shootDay: {
+                id: uuidv4(),
                 date: config.date,
                 callTime: callTime,
-                wrapTime: wrapTime,
+                shootStartTime: callTime,
+                estimatedWrapTime: wrapTime,
                 mainLocation: {
                     name: mainLocationName,
                     address: ""
                 },
-                weather: { forecast: "맑음 (Sunny)", tempRange: "15-25°C" },
-                crew: {
-                    director: project.director || "미정",
-                    dop: "",
-                    pd: "",
-                    gaffer: "",
-                    ad: ""
-                }
+                weather: "맑음 (Sunny), 15-25°C"
             },
             timetable,
             castCalls,
@@ -258,7 +255,7 @@ export function generateDraftSchedule(
         project: {
             title: project.title,
             episodeNumber: "",
-            director: project.director || "",
+            director: "",
             producer: ""
         },
         days
