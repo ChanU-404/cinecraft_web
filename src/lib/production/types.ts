@@ -61,6 +61,17 @@ export const CastCallSchema = z.object({
 
 // --- Main Model ---
 
+export const DailyScheduleSchema = z.object({
+    id: z.string().uuid(),
+    date: z.string(),
+    dayNumber: z.number(),
+    shootDay: ShootDaySchema,
+    scenes: z.array(ProductionSceneSchema),
+    timetable: z.array(TimeBlockSchema),
+    castCalls: z.array(CastCallSchema),
+    announcements: z.string().optional(),
+});
+
 export const ProductionDocSchema = z.object({
     id: z.string().uuid(),
     projectId: z.string(),
@@ -74,16 +85,12 @@ export const ProductionDocSchema = z.object({
         producer: z.string().optional(),
     }),
 
-    shootDay: ShootDaySchema,
-
-    scenes: z.array(ProductionSceneSchema),
-    timetable: z.array(TimeBlockSchema),
-    castCalls: z.array(CastCallSchema),
-
-    announcements: z.string().optional(),
+    // Multi-day structure
+    days: z.array(DailyScheduleSchema),
 });
 
 export type ProductionDocModel = z.infer<typeof ProductionDocSchema>;
 export type ProductionScene = z.infer<typeof ProductionSceneSchema>;
 export type TimeBlock = z.infer<typeof TimeBlockSchema>;
 export type CastCall = z.infer<typeof CastCallSchema>;
+export type DailySchedule = z.infer<typeof DailyScheduleSchema>;

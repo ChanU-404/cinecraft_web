@@ -8,16 +8,17 @@ interface SetupData {
     lunchDuration: number;
     maxHours: number;
     days: number;
-    location: string;
+    locationMap: Record<string, string>;
 }
 
 interface ProductionSetupModalProps {
     isOpen: boolean;
     onClose: () => void;
     onComplete: (data: SetupData) => void;
+    uniqueLocations: string[];
 }
 
-export function ProductionSetupModal({ isOpen, onClose, onComplete }: ProductionSetupModalProps) {
+export function ProductionSetupModal({ isOpen, onClose, onComplete, uniqueLocations }: ProductionSetupModalProps) {
     const [step, setStep] = useState(1);
     const [data, setData] = useState<SetupData>({
         startDate: new Date().toISOString().split('T')[0],
@@ -25,13 +26,22 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
         lunchDuration: 60,
         maxHours: 12,
         days: 1,
-        location: ""
+        locationMap: {}
     });
 
     const handleNext = () => {
-        if (step < 3) setStep(step + 1);
+        if (step < 4) setStep(step + 1);
         else onComplete(data);
     };
+
+    // Auto-fill map on init
+    React.useEffect(() => {
+        if (uniqueLocations.length > 0) {
+            const initialMap: Record<string, string> = {};
+            uniqueLocations.forEach(loc => initialMap[loc] = "");
+            setData(prev => ({ ...prev, locationMap: initialMap }));
+        }
+    }, [uniqueLocations]);
 
     if (!isOpen) return null;
 
@@ -41,10 +51,10 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-[#1e293b] border border-[#334155] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+                className="bg-[#1e293b] border border-[#334155] w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
                 {/* Header */}
-                <div className="bg-[#0f172a] p-4 border-b border-[#334155] flex justify-between items-center">
+                <div className="bg-[#0f172a] p-4 border-b border-[#334155] flex justify-between items-center shrink-0">
                     <h2 className="font-bold text-white flex items-center gap-2">
                         <Calendar className="w-5 h-5 text-[#ff365c]" />
                         스케줄 초기 설정 (Schedule Setup)
@@ -55,7 +65,7 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                 </div>
 
                 {/* Content */}
-                <div className="p-8">
+                <div className="p-8 overflow-y-auto custom-scrollbar">
                     <AnimatePresence mode="wait">
                         {step === 1 && (
                             <motion.div
@@ -84,17 +94,6 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                                             className="w-full bg-[#0b0f17] border border-[#334155] rounded-lg p-3 text-white focus:border-[#ff365c] focus:outline-none"
                                         />
                                     </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-400 uppercase tracking-wider">메인 로케이션 (Main Location)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="예: 서울, 부산 스튜디오 등"
-                                        value={data.location}
-                                        onChange={(e) => setData({ ...data, location: e.target.value })}
-                                        className="w-full bg-[#0b0f17] border border-[#334155] rounded-lg p-3 text-white focus:border-[#ff365c] focus:outline-none placeholder:text-gray-600"
-                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -165,6 +164,39 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                                 initial={{ x: 10, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
                                 exit={{ x: -10, opacity: 0 }}
+                                className="space-y-6"
+                            >
+                                <h3 className="text-md font-bold text-emerald-400 mb-4">로케이션 매핑 (Real World Locations)</h3>
+                                <p className="text-xs text-gray-500 mb-4">시나리오상의 장소를 실제 촬영지 주소나 이름으로 연결해주세요.</p>
+
+                                <div className="space-y-4">
+                                    {uniqueLocations.map(loc => (
+                                        <div key={loc} className="space-y-1">
+                                            <label className="text-xs font-bold text-gray-400">{loc}</label>
+                                            <input
+                                                type="text"
+                                                placeholder="실제 촬영 장소 입력..."
+                                                value={data.locationMap[loc] || ""}
+                                                onChange={(e) => setData({
+                                                    ...data,
+                                                    locationMap: { ...data.locationMap, [loc]: e.target.value }
+                                                })}
+                                                className="w-full bg-[#0b0f17] border border-[#334155] rounded-lg p-2 text-sm text-white focus:border-[#ff365c] focus:outline-none"
+                                            />
+                                        </div>
+                                    ))}
+                                    {uniqueLocations.length === 0 && (
+                                        <p className="text-sm text-gray-500 text-center">감지된 로케이션이 없습니다.</p>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+                        {step === 4 && (
+                            <motion.div
+                                key="step4"
+                                initial={{ x: 10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: -10, opacity: 0 }}
                                 className="text-center space-y-6 py-4"
                             >
                                 <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-500">
@@ -181,10 +213,10 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                                         <span>일정:</span> <span className="text-white">{data.startDate} ({data.days}일간)</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>집합:</span> <span className="text-white">{data.callTime} @ {data.location || '미정'}</span>
+                                        <span>집합:</span> <span className="text-white">{data.callTime}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span>제한:</span> <span className="text-white">일 {data.maxHours}시간</span>
+                                        <span>장소:</span> <span className="text-white">{Object.values(data.locationMap).filter(Boolean).length}곳 설정됨</span>
                                     </div>
                                 </div>
                             </motion.div>
@@ -193,7 +225,7 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 bg-[#0f172a] border-t border-[#334155] flex justify-between">
+                <div className="p-4 bg-[#0f172a] border-t border-[#334155] flex justify-between shrink-0">
                     <button
                         onClick={step === 1 ? onClose : () => setStep(step - 1)}
                         className="text-gray-400 hover:text-white text-sm font-bold px-4 py-2"
@@ -204,8 +236,8 @@ export function ProductionSetupModal({ isOpen, onClose, onComplete }: Production
                         onClick={handleNext}
                         className="bg-[#ff365c] hover:bg-[#ff1f4b] text-white px-6 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                     >
-                        {step === 3 ? '스케줄 생성 (Generate)' : '다음'}
-                        {step < 3 && <ChevronRight className="w-4 h-4" />}
+                        {step === 4 ? '스케줄 생성 (Generate)' : '다음'}
+                        {step < 4 && <ChevronRight className="w-4 h-4" />}
                     </button>
                 </div>
             </motion.div>
