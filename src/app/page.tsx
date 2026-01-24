@@ -60,14 +60,13 @@ export default function CineCraftWorkspace() {
     updateProjectGlobalContext
   } = useScreenplay();
 
-  const { tier, setTier, checkPermission, isGuest, usage, quota } = useSubscription();
+  const { tier, setTier, checkPermission, usage, quota } = useSubscription();
   const { t } = useLanguage();
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
-  const [guestEntered, setGuestEntered] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Global Context State
@@ -320,7 +319,7 @@ export default function CineCraftWorkspace() {
   }
 
   // Guest Limitation: Truncate Scenes
-  const displayScenes = isGuest ? scenes.slice(0, 3) : scenes;
+  const displayScenes = scenes;
 
 
   return (
@@ -690,7 +689,7 @@ export default function CineCraftWorkspace() {
                   onClick={() => {
                     if (currentProjectId) router.push(`/production/${currentProjectId}`);
                   }}
-                  className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all ${isGuest ? 'opacity-50 saturate-0' : ''}`}
+                  className={`flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-900/20 transition-all `}
                 >
                   <FileSpreadsheet className="w-4 h-4" />
                   <span>Production Docs</span>

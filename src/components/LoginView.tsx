@@ -1,12 +1,8 @@
 import { signIn } from "next-auth/react";
-import { Film, Clapperboard, Sparkles } from "lucide-react";
+import { Clapperboard, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
-interface LoginViewProps {
-    onGuestEnter: () => void;
-}
-
-export function LoginView({ onGuestEnter }: LoginViewProps) {
+export function LoginView() {
     return (
         <div className="min-h-screen bg-[#020617] flex items-center justify-center p-4 relative overflow-hidden font-sans">
             {/* Dynamic Background */}
@@ -56,7 +52,7 @@ export function LoginView({ onGuestEnter }: LoginViewProps) {
                 <div className="bg-[#111827]/50 backdrop-blur-xl border border-[#1f2937] p-8 md:p-12 rounded-3xl shadow-2xl flex flex-col gap-8">
                     <div className="text-center">
                         <h3 className="text-white font-bold text-xl mb-2">Welcome Back, Director.</h3>
-                        <p className="text-[#94a3b8] text-sm">Sign in to access your workspace.</p>
+                        <p className="text-[#94a3b8] text-sm">Sign in with your Google account to continue.</p>
                     </div>
 
                     <button
@@ -80,16 +76,6 @@ export function LoginView({ onGuestEnter }: LoginViewProps) {
                             <span>🛠️ Dev Mode: Mock Login</span>
                         </button>
                     )}
-
-
-
-                    <button
-                        onClick={onGuestEnter}
-                        className="w-full text-[#94a3b8] hover:text-white text-xs font-bold uppercase tracking-widest transition-colors"
-                    >
-                        Experience for Free (Guest Access)
-                    </button>
-
                 </div>
             </motion.div>
         </div>
