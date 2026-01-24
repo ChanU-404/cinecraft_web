@@ -41,9 +41,6 @@ export function LoginView() {
 
                     <div className="flex gap-4 items-center justify-center md:justify-start text-sm font-bold text-[#64748b] tracking-wider uppercase">
                         <span className="flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#fbbf24]" /> AI 기반</span>
-                        <span className="w-1 h-1 bg-[#334155] rounded-full" />
-                        <span>보안</span>
-                        <span className="w-1 h-1 bg-[#334155] rounded-full" />
                         <span>프로덕션 준비</span>
                     </div>
                 </div>

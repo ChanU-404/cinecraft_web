@@ -114,10 +114,10 @@ export default function ProductionPage() {
                         <div className="h-full flex flex-col items-center justify-center space-y-6 min-h-[500px]">
                             <div className="bg-[#1e293b] p-8 rounded-2xl border border-[#334155] max-w-lg w-full text-center shadow-xl">
                                 <Calendar className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-                                <h2 className="text-2xl font-bold mb-2">Create Shooting Schedule</h2>
+                                <h2 className="text-2xl font-bold mb-2">촬영 스케줄(일촬표) 생성</h2>
                                 <p className="text-gray-400 mb-8">
-                                    AI will analyze your {scenes.length} scenes to create an optimized schedule. <br />
-                                    First, let's set some constraints.
+                                    AI가 {scenes.length} 개의 씬을 분석하여 최적화된 스케줄을 생성합니다. <br />
+                                    먼저 몇 가지 기본 설정을 진행해 주세요.
                                 </p>
 
                                 <button
@@ -127,10 +127,10 @@ export default function ProductionPage() {
                                 >
                                     {isLoading ? (
                                         <>
-                                            <RefreshCw className="w-5 h-5 animate-spin" /> Generating...
+                                            <RefreshCw className="w-5 h-5 animate-spin" /> 생성 중...
                                         </>
                                     ) : (
-                                        "Start Schedule Setup"
+                                        "스케줄 설정 시작하기"
                                     )}
                                 </button>
                             </div>
