@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Lock, Rocket } from 'lucide-react';
+import { Check, Rocket } from 'lucide-react';
 
 interface UpgradeIntentModalProps {
     isOpen: boolean;
@@ -12,7 +12,7 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
     const [step, setStep] = useState(1);
     const [formData, setFormData] = useState({
         email: '',
-        roleCategory: 'Director',
+        roleCategory: '감독 / 영화 제작자',
         useCaseText: '',
         willingness: false
     });
@@ -28,7 +28,7 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
             });
             setStep(3); // Success
         } catch (e) {
-            alert("Failed to join waitlist.");
+            alert("대기 명단 등록에 실패했습니다.");
         } finally {
             setIsSubmitting(false);
         }
@@ -47,8 +47,8 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                 >
                     {/* Header */}
                     <div className="bg-[#1e293b] p-6 text-center border-b border-[#334155]">
-                        <h2 className="text-xl font-bold text-white mb-1">Unlock Limitless Creativity</h2>
-                        <p className="text-sm text-[#94a3b8]">Upgrade to Pro to remove limits.</p>
+                        <h2 className="text-xl font-bold text-white mb-1">창의력의 한계를 넓히세요</h2>
+                        <p className="text-sm text-[#94a3b8]">프로 플랜으로 업그레이드하고 모든 제한을 해제하세요.</p>
                     </div>
 
                     <div className="p-6">
@@ -56,19 +56,19 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                             <>
                                 <div className="grid grid-cols-2 gap-4 mb-8">
                                     <div className="p-4 bg-[#1e293b]/50 rounded-xl border border-[#334155] opacity-70">
-                                        <h3 className="text-sm font-bold text-[#94a3b8] mb-2">CURRENT (FREE)</h3>
-                                        <div className="text-2xl font-bold text-white mb-1">40 <span className="text-xs font-normal text-[#64748b]">Images/mo</span></div>
+                                        <h3 className="text-sm font-bold text-[#94a3b8] mb-2">현재 플랜 (무료)</h3>
+                                        <div className="text-2xl font-bold text-white mb-1">40 <span className="text-xs font-normal text-[#64748b]">이미지/월</span></div>
                                     </div>
                                     <div className="p-4 bg-gradient-to-br from-[#1e293b] to-[#1e1b4b] rounded-xl border border-[#6366f1] relative">
-                                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-[#6366f1] text-white text-[10px] font-bold rounded-full">RECOMMENDED</div>
-                                        <h3 className="text-sm font-bold text-[#6366f1] mb-2">PRO PLAN</h3>
-                                        <div className="text-2xl font-bold text-white mb-1">400 <span className="text-xs font-normal text-[#a5b4fc]">Images/mo</span></div>
+                                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-[#6366f1] text-white text-[10px] font-bold rounded-full">추천</div>
+                                        <h3 className="text-sm font-bold text-[#6366f1] mb-2">프로 플랜</h3>
+                                        <div className="text-2xl font-bold text-white mb-1">400 <span className="text-xs font-normal text-[#a5b4fc]">이미지/월</span></div>
                                     </div>
                                 </div>
 
                                 <div className="text-center mb-6">
-                                    <div className="text-3xl font-bold text-white">₩9,900 <span className="text-sm font-normal text-[#94a3b8]">/ month</span></div>
-                                    <p className="text-xs text-[#64748b] mt-2">Currently in Beta. Payment integration coming soon.</p>
+                                    <div className="text-3xl font-bold text-white">₩9,900 <span className="text-sm font-normal text-[#94a3b8]">/ 월</span></div>
+                                    <p className="text-xs text-[#64748b] mt-2">현재 베타 버전입니다. 결제 시스템이 곧 도입될 예정입니다.</p>
                                 </div>
 
                                 <button
@@ -76,10 +76,10 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                     className="w-full py-3 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                                 >
                                     <Rocket size={18} />
-                                    Join Priority Acess List
+                                    우선 대기 명단 가입하기
                                 </button>
                                 <div className="mt-4 text-center">
-                                    <button onClick={onClose} className="text-xs text-[#64748b] hover:text-white">No thanks, stick to free limit</button>
+                                    <button onClick={onClose} className="text-xs text-[#64748b] hover:text-white">아니요, 무료 버전을 계속 사용하겠습니다</button>
                                 </div>
                             </>
                         )}
@@ -87,11 +87,11 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                         {step === 2 && (
                             <div className="space-y-4">
                                 <p className="text-sm text-[#cbd5e1] mb-4">
-                                    We are rolling out Pro access in batches. Tell us a bit about yourself to get priority approval.
+                                    프로 플랜은 순차적으로 오픈하고 있습니다. 우선 승인을 위해 간단한 정보를 입력해 주세요.
                                 </p>
                                 <input
                                     type="email"
-                                    placeholder="Your Work/Personal Email"
+                                    placeholder="업무용 또는 개인 이메일"
                                     className="w-full bg-[#1e293b] border border-[#334155] rounded-lg p-3 text-white text-sm focus:border-[#6366f1] outline-none"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -101,13 +101,13 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                     value={formData.roleCategory}
                                     onChange={e => setFormData({ ...formData, roleCategory: e.target.value })}
                                 >
-                                    <option>Director / Filmmaker</option>
-                                    <option>Writer</option>
-                                    <option>Student</option>
-                                    <option>Other</option>
+                                    <option>감독 / 영화 제작자</option>
+                                    <option>작가</option>
+                                    <option>학생</option>
+                                    <option>기타</option>
                                 </select>
                                 <textarea
-                                    placeholder="How do you plan to use CineCraft?"
+                                    placeholder="CineCraft를 어떻게 활용하실 계획인가요?"
                                     className="w-full bg-[#1e293b] border border-[#334155] rounded-lg p-3 text-white text-sm outline-none h-24 resize-none"
                                     value={formData.useCaseText}
                                     onChange={e => setFormData({ ...formData, useCaseText: e.target.value })}
@@ -119,7 +119,7 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                         checked={formData.willingness}
                                         onChange={e => setFormData({ ...formData, willingness: e.target.checked })}
                                     />
-                                    <span className="text-xs text-[#94a3b8]">I would pay ₩9,900 right now if available.</span>
+                                    <span className="text-xs text-[#94a3b8]">지금 바로 ₩9,900에 결제할 의사가 있습니다.</span>
                                 </label>
 
                                 <button
@@ -127,9 +127,9 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                     disabled={isSubmitting || !formData.email}
                                     className="w-full py-3 bg-[#6366f1] hover:bg-[#4f46e5] disabled:opacity-50 text-white font-bold rounded-xl transition-all mt-2"
                                 >
-                                    {isSubmitting ? 'Submitting...' : 'Complete Waitlist Registration'}
+                                    {isSubmitting ? '제출 중...' : '대기 명단 등록 완료'}
                                 </button>
-                                <button onClick={() => setStep(1)} className="w-full text-center text-xs text-[#64748b] mt-2">Back</button>
+                                <button onClick={() => setStep(1)} className="w-full text-center text-xs text-[#64748b] mt-2">뒤로</button>
                             </div>
                         )}
 
@@ -138,13 +138,13 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                 <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                                     <Check size={32} />
                                 </div>
-                                <h3 className="text-xl font-bold text-white mb-2">You're on the list!</h3>
-                                <p className="text-sm text-[#94a3b8] mb-6">We will notify you at {formData.email} as soon as Pro access opens.</p>
+                                <h3 className="text-xl font-bold text-white mb-2">명단에 등록되었습니다!</h3>
+                                <p className="text-sm text-[#94a3b8] mb-6">{formData.email} 주소로 프로 플랜 오픈 시 즉시 안내해 드리겠습니다.</p>
                                 <button
                                     onClick={onClose}
                                     className="w-full py-2 bg-[#1e293b] hover:bg-[#334155] text-white font-medium rounded-lg"
                                 >
-                                    Back to Workspace
+                                    워크스페이스로 돌아가기
                                 </button>
                             </div>
                         )}
