@@ -4,6 +4,8 @@ import "./globals.css";
 import { ScreenplayProvider } from "@/context/ScreenplayContext";
 import { SubscriptionProvider } from "@/context/SubscriptionContext";
 import { LanguageProvider } from "@/context/LanguageContext";
+import { GoogleAnalytics } from '@next/third-parties/google';
+import { Analytics } from '@vercel/analytics/react';
 
 import { Providers } from "@/components/Providers";
 
@@ -28,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ko" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
@@ -42,6 +44,10 @@ export default function RootLayout({
             </LanguageProvider>
           </SubscriptionProvider>
         </Providers>
+        <Analytics />
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+        )}
       </body>
     </html>
   );

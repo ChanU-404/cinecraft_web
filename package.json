@@ -12,6 +12,7 @@
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@types/html2canvas": "^0.5.35",
+    "@vercel/analytics": "^1.6.1",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.24.11",
     "html2canvas": "^1.4.1",
@@ -30,6 +31,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@next/third-parties": "^16.1.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",

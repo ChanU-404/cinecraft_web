@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Rocket } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
 
 interface UpgradeIntentModalProps {
     isOpen: boolean;
@@ -26,6 +27,7 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
+            trackEvent.waitlistJoinComplete(formData.email);
             setStep(3); // Success
         } catch (e) {
             alert("대기 명단 등록에 실패했습니다.");
@@ -72,7 +74,10 @@ export default function UpgradeIntentModal({ isOpen, onClose, currentDraftUsage 
                                 </div>
 
                                 <button
-                                    onClick={() => setStep(2)}
+                                    onClick={() => {
+                                        trackEvent.waitlistJoinClick();
+                                        setStep(2);
+                                    }}
                                     className="w-full py-3 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                                 >
                                     <Rocket size={18} />
