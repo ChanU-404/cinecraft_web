@@ -24,10 +24,29 @@ export async function getProjects(): Promise<Project[]> {
         return [];
     }
 
+    // Fetch user's projects AND legacy projects with null userId
     const dbProjects = await prisma.project.findMany({
-        where: { userId: user.id },
+        where: {
+            OR: [
+                { userId: user.id },
+                { userId: null }  // Legacy projects without userId
+            ]
+        },
         orderBy: { lastModified: 'desc' }
     });
+
+    // Auto-migrate legacy projects to current user
+    const legacyProjects = dbProjects.filter(p => p.userId === null);
+    if (legacyProjects.length > 0) {
+        await Promise.all(
+            legacyProjects.map(p =>
+                prisma.project.update({
+                    where: { id: p.id },
+                    data: { userId: user.id }
+                })
+            )
+        );
+    }
 
     return dbProjects.map(p => ({
         id: p.id,
