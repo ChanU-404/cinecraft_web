@@ -33,7 +33,7 @@ model MonthlyCredit {
   period     String   // Format: "YYYY-MM"
   draftUsed  Int      @default(0)
   finalUsed  Int      @default(0)
-  draftLimit Int      @default(20)
+  draftLimit Int      @default(80)
   finalLimit Int      @default(1)
   
   createdAt  DateTime @default(now())

@@ -2,7 +2,7 @@ import prisma from './db';
 
 const QUOTAS = {
     GUEST: { draft: 0, final: 0 },
-    MEMBER: { draft: 40, final: 0 },
+    MEMBER: { draft: 80, final: 0 },
     PRO: { draft: 400, final: 0 },
 };
 
@@ -44,7 +44,7 @@ export async function getCredits(email: string) {
 
     // Fallback if DB returns partial data (rare but leads to 0/0)
     if (!credits.draftLimit) {
-        return { ...credits, draftLimit: 40 };
+        return { ...credits, draftLimit: 80 };
     }
 
     return credits;
@@ -60,7 +60,7 @@ export async function checkCredits(email: string, type: 'draft' | 'final') {
     return used < limit;
 }
 
-export async function consumeCredits(email: string, type: 'draft' | 'final') {
+export async function consumeCredits(email: string, type: 'draft' | 'final', amount: number = 1) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return false;
 
@@ -70,12 +70,12 @@ export async function consumeCredits(email: string, type: 'draft' | 'final') {
     if (type === 'draft') {
         await prisma.monthlyCredit.update({
             where: { userId_period: { userId: user.id, period } },
-            data: { draftUsed: { increment: 1 } }
+            data: { draftUsed: { increment: amount } }
         });
     } else {
         await prisma.monthlyCredit.update({
             where: { userId_period: { userId: user.id, period } },
-            data: { finalUsed: { increment: 1 } }
+            data: { finalUsed: { increment: amount } }
         });
     }
     return true;

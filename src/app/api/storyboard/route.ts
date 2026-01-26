@@ -176,8 +176,8 @@ export async function POST(req: NextRequest) {
                 imageUrl: img
             }));
 
-            // 4. Consume Credits (1 Credit per Batch Action)
-            await consumeCredits(email, 'draft');
+            // 4. Consume Credits (3 Credits = 3 Candidate Images)
+            await consumeCredits(email, 'draft', 3);
 
             return NextResponse.json({
                 shotId,
