@@ -22,6 +22,23 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "CineCraft — 시나리오 시각화 & 촬영 계획 워크스페이스",
   description: "AI 기반의 시나리오 시각화 및 스토리보드 기획 워크스페이스입니다.",
+  openGraph: {
+    title: "CineCraft — AI 시나리오 시각화 플랫폼",
+    description: "PDF 시나리오를 AI 기반 스토리보드, 촬영 스케줄, 프로덕션 샷으로 즉시 변환합니다.",
+    url: "https://cinecraft-ai.vercel.app",
+    siteName: "CineCraft",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CineCraft — AI 시나리오 시각화",
+    description: "PDF 시나리오를 AI 기반 스토리보드로 즉시 변환",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({
