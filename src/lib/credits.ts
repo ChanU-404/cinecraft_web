@@ -26,14 +26,25 @@ export async function getCredits(email: string) {
     const now = new Date();
     const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+    // Check if credits already exist
+    const existingCredits = await prisma.monthlyCredit.findUnique({
+        where: {
+            userId_period: { userId: user.id, period }
+        }
+    });
+
+    // If credits exist and have unlimited quota (999999), don't update limits
+    const shouldUpdateLimits = !existingCredits ||
+        (existingCredits.draftLimit !== 999999 && existingCredits.finalLimit !== 999999);
+
     const credits = await prisma.monthlyCredit.upsert({
         where: {
             userId_period: { userId: user.id, period }
         },
-        update: {
+        update: shouldUpdateLimits ? {
             draftLimit: QUOTAS[user.plan as keyof typeof QUOTAS].draft,
             finalLimit: QUOTAS[user.plan as keyof typeof QUOTAS].final,
-        },
+        } : {},
         create: {
             userId: user.id,
             period,
