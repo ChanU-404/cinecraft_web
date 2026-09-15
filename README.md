@@ -25,12 +25,11 @@
 ## 📽️ 데모 영상
 
 <div align="center">
-  <video src="https://github.com/ChanU-404/cinecraft_web/raw/master/docs/assets/demo.mp4" controls muted width="100%">
-    데모 영상을 표시할 수 없습니다. <a href="docs/assets/demo.mp4">여기서 다운로드</a>해 주세요.
-  </video>
+  <a href="docs/assets/demo.mp4">
+    <img src="docs/assets/demo-thumbnail.jpg" alt="CineCraft 데모 영상 (클릭해서 재생)" width="100%"/>
+  </a>
+  <p>👆 이미지를 클릭하면 데모 영상이 재생됩니다 (<a href="docs/assets/demo.mp4">docs/assets/demo.mp4</a>)</p>
 </div>
-
-> 영상이 바로 재생되지 않는다면 [`docs/assets/demo.mp4`](docs/assets/demo.mp4)를 클릭해 새 탭에서 열어 확인해 주세요.
 
 <br/>
 
