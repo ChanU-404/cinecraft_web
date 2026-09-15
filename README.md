@@ -25,11 +25,13 @@
 ## 📽️ 데모 영상
 
 <div align="center">
-  <a href="docs/assets/demo.mp4">
+  <a href="https://raw.githubusercontent.com/ChanU-404/cinecraft_web/master/docs/assets/demo.mp4">
     <img src="docs/assets/demo-thumbnail.jpg" alt="CineCraft 데모 영상 (클릭해서 재생)" width="100%"/>
   </a>
-  <p>👆 이미지를 클릭하면 데모 영상이 재생됩니다 (<a href="docs/assets/demo.mp4">docs/assets/demo.mp4</a>)</p>
+  <p>👆 이미지를 클릭하면 새 탭에서 영상이 바로 재생됩니다</p>
 </div>
+
+> GitHub 저장소 화면에서 직접 재생하고 싶다면 [`docs/assets/demo.mp4`](docs/assets/demo.mp4) 파일 페이지에서 **View raw**를 눌러 주세요.
 
 <br/>
 
