@@ -28,6 +28,10 @@ https://github.com/user-attachments/assets/a3c76b85-997b-44b2-8edf-aa34753019ec
 
 <br/>
 
+## 💻 구현 코드 안내
+
+이 페이지는 CineCraft의 서비스 소개와 데모를 정리한 페이지입니다. LLM 기반 시나리오 분석, 제작 문서 생성, DB 저장 및 사용량 관리 등 주요 구현은 **[main 브랜치에서 확인하실 수 있습니다](https://github.com/ChanU-404/cinecraft_web/tree/main)**.
+
 ## 🧭 CineCraft가 필요한 이유
 
 OTT와 1인 미디어 확산으로 영상 콘텐츠 제작 수요는 계속 늘고 있지만, **정작 기획 단계에서 쓸 수 있는 도구는 여전히 제한적**입니다.
